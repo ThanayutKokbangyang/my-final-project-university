@@ -27,18 +27,33 @@ cp .env.example .env
 npm ci
 ```
 
+สำหรับ Windows ใช้ PowerShell ในโฟลเดอร์โปรเจกต์เพื่อคัดลอกไฟล์ตั้งค่าได้โดยตรง:
+
+```powershell
+Copy-Item .env.example .env
+npm ci
+```
+
+สร้าง `NEXTAUTH_SECRET` ด้วย Node.js ได้ทั้ง Windows, macOS และ Linux โดยไม่ต้องติดตั้ง OpenSSL:
+
+```bash
+node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
+```
+
+นำค่าที่ได้ไปใส่ใน `.env` แล้วจึงรันเว็บ
+
 กรอกค่าจริงใน `.env` โดยไม่ commit ไฟล์นี้:
 
-| ตัวแปร                                                                             | ใช้สำหรับ                                                  |
-| ---------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `DATABASE_URL`                                                                     | MySQL connection string                                    |
-| `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`                                              | URL ของเว็บ เช่น `http://localhost:3000`                   |
-| `NEXTAUTH_SECRET`                                                                  | secret สำหรับ session; สร้างด้วย `openssl rand -base64 32` |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`                                         | เข้าสู่ระบบ Google OAuth                                   |
-| `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET`                                     | เข้าสู่ระบบ Facebook OAuth                                 |
-| `GMAIL_USER`, `GMAIL_PASS`                                                         | Gmail และ App Password สำหรับยืนยันอีเมล/รีเซ็ตรหัสผ่าน    |
-| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | รูปภาพสินค้า                                               |
-| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`                                       | Stripe API และการตรวจลายเซ็น webhook                       |
+| ตัวแปร                                                                             | ใช้สำหรับ                                               |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `DATABASE_URL`                                                                     | MySQL connection string                                 |
+| `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`                                              | URL ของเว็บ เช่น `http://localhost:3000`                |
+| `NEXTAUTH_SECRET`                                                                  | secret สำหรับ session; สร้างด้วยคำสั่ง Node.js ด้านบน   |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`                                         | เข้าสู่ระบบ Google OAuth                                |
+| `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET`                                     | เข้าสู่ระบบ Facebook OAuth                              |
+| `GMAIL_USER`, `GMAIL_PASS`                                                         | Gmail และ App Password สำหรับยืนยันอีเมล/รีเซ็ตรหัสผ่าน |
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | รูปภาพสินค้า                                            |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`                                       | Stripe API และการตรวจลายเซ็น webhook                    |
 
 เริ่มด้วย Stripe **test mode** และตั้ง OAuth redirect URL ของแต่ละ provider เป็น `/api/auth/callback/google` หรือ `/api/auth/callback/facebook` บน URL ของเว็บ
 
@@ -100,6 +115,18 @@ npm start
 Integration tests ต้องใช้ฐานข้อมูล **สำหรับทดสอบเท่านั้น** ที่รัน migration แล้ว โดยกำหนด `TEST_DATABASE_URL` ให้เท่ากับ `DATABASE_URL` หากไม่กำหนดจะข้าม 5 เคส MySQL ส่วน GitHub Actions ตั้ง MySQL แยกและรันทั้ง migration, tests, lint, format และ production build ทุกครั้งที่ push หรือเปิด PR
 
 ยังต้องทดสอบ OAuth, Gmail, Cloudinary และการชำระผ่าน Stripe test mode ด้วยบัญชี/secret ของผู้ใช้งานก่อนนำไปเปิดร้านจริง
+
+## แก้ปัญหาการตั้งค่าเบื้องต้น
+
+| อาการ                                              | สิ่งที่ควรตรวจ                                                                                          |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `Environment variable not found: DATABASE_URL`     | สร้าง `.env` ในโฟลเดอร์เดียวกับ `package.json` และกำหนด `DATABASE_URL`                                  |
+| Prisma เชื่อมต่อ MySQL ไม่ได้                      | ตรวจว่า MySQL เปิดอยู่ ชื่อฐานข้อมูล/ผู้ใช้/รหัสผ่านถูกต้อง และผู้ใช้มีสิทธิ์เข้าถึงฐานข้อมูล           |
+| ฟิลด์หรือตารางใหม่ไม่มีในฐานข้อมูล                 | สำรองข้อมูล แล้วรัน `npm run db:migrate` กับฐานข้อมูลที่กำหนดใน `.env`                                  |
+| `There is a problem with the server configuration` | ดู server log และตรวจ `NEXTAUTH_SECRET`, URL และค่าของ OAuth provider ที่ใช้งาน                         |
+| จ่ายผ่าน Stripe แล้ว order ยังไม่อัปเดต            | ตรวจว่า endpoint `/api/webhook` รับ event ได้ และ signing secret ตรงกับ endpoint หรือ Stripe CLI ที่ใช้ |
+
+เมื่อแก้ `.env` ให้หยุดและเริ่ม server ใหม่ หากแก้ค่าที่ขึ้นต้นด้วย `NEXT_PUBLIC_` ใน production ต้อง build ใหม่ด้วย
 
 ## โครงสร้างที่สำคัญ
 
