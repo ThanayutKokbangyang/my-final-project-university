@@ -39,10 +39,13 @@ export default function Home() {
   const fetchAds = async (): Promise<void> => {
     try {
       const response = await fetch("/api/advertisements");
+      if (!response.ok) throw new Error("Failed to fetch advertisements");
       const data = await response.json();
+      if (!Array.isArray(data)) throw new Error("Invalid advertisements response");
       setAds(data);
     } catch (error) {
       console.error("Failed to fetch advertisements:", error);
+      setAds([]);
     }
   };
 
@@ -55,7 +58,7 @@ export default function Home() {
   return (
     <div>
       <Navbar />
-      <AdvertisementPreview ads={ads} />
+      {ads.length > 0 && <AdvertisementPreview ads={ads} />}
       <EclatHero />
 
       <span className="text-3xl font-bold text-gray-800 mt-10 block text-center">สินค้าของเรา</span>
