@@ -1,171 +1,109 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '../auth/authOptions';
-import { isAdmin } from '../../util/isAdmin';
-
-const prisma = new PrismaClient();
+import { NextRequest } from "next/server";
+import prisma from "@/lib/prisma";
+import { errorResponse, HttpError, positiveInt, readBody, requireUser } from "@/lib/http";
+import { safeJson } from "@/lib/json";
+import { serializable } from "@/lib/payments";
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  if (!session || !session.user) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
-  const { searchParams } = new URL(req.url);
-  const userIdParam = searchParams.get('userId'); // Admin สามารถดูที่อยู่ของคนอื่นได้
-
   try {
-    if (await isAdmin(req)) {
-      if (userIdParam) {
-        // Admin ดูที่อยู่ของผู้ใช้คนอื่น
-        const addresses = await prisma.address.findMany({
-          where: { userId: userIdParam },
-        });
-        return NextResponse.json(addresses);
-      } else {
-        // Admin ดูที่อยู่ของทุกคน
-        const addresses = await prisma.address.findMany();
-        return NextResponse.json(addresses);
-      }
-    } else {
-      // ผู้ใช้ธรรมดาดูที่อยู่ของตัวเองเท่านั้น
-      const userId = (session.user as { id: string }).id;
-      const addresses = await prisma.address.findMany({
-        where: { userId },
-      });
-      return NextResponse.json(addresses);
-    }
+    const user = await requireUser();
+    const requested = req.nextUrl.searchParams.get("userId");
+    const all = user.role === "ADMIN" && req.nextUrl.searchParams.get("all") === "1";
+    const userId = user.role === "ADMIN" && requested ? requested : user.id;
+    return safeJson(
+      await prisma.address.findMany({
+        where: all ? {} : { userId },
+        orderBy: [{ isDefault: "desc" }, { id: "asc" }],
+      }),
+    );
   } catch (error) {
-    console.error('Error fetching addresses:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return errorResponse(error);
   }
 }
 
+function addressData(body: Record<string, unknown>) {
+  const fields = [
+    "recipient",
+    "phoneNumber",
+    "address",
+    "district",
+    "province",
+    "zipCode",
+    "country",
+  ] as const;
+  for (const key of fields)
+    if (typeof body[key] !== "string" || !body[key].trim() || body[key].length > 2000)
+      throw new HttpError(400, `Invalid ${key}`);
+  if (body.isDefault !== undefined && typeof body.isDefault !== "boolean")
+    throw new HttpError(400, "Invalid default address flag");
+  return {
+    recipient: (body.recipient as string).trim(),
+    phoneNumber: (body.phoneNumber as string).trim(),
+    address: (body.address as string).trim(),
+    district: (body.district as string).trim(),
+    province: (body.province as string).trim(),
+    zipCode: (body.zipCode as string).trim(),
+    country: (body.country as string).trim(),
+    ...(body.isDefault === undefined ? {} : { isDefault: body.isDefault }),
+  };
+}
+
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  if (!session || !session.user) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
-  // รับฟิลด์ใหม่ recipient, phoneNumber, และ isDefault
-  const { recipient, phoneNumber, address, district, province, zipCode, country, isDefault } = await req.json();
-
-  // ตรวจสอบให้แน่ใจว่าทุกฟิลด์จำเป็นถูกส่งมา
-  if (!recipient || !phoneNumber || !address || !district || !province || !zipCode || !country) {
-    return NextResponse.json({ message: 'All fields are required' }, { status: 400 });
-  }
-
   try {
-    const userId = (session.user as { id: string }).id;
-
-    // ถ้ากำลังตั้งที่อยู่นี้เป็นที่อยู่เริ่มต้น ต้องรีเซ็ตที่อยู่เริ่มต้นของผู้ใช้อื่นก่อน
-    if (isDefault) {
-      await prisma.address.updateMany({
-        where: { userId, isDefault: true },
-        data: { isDefault: false },
-      });
-    }
-
-    const newAddress = await prisma.address.create({
-      data: {
-        userId,
-        recipient,
-        phoneNumber,
-        address,
-        district,
-        province,
-        zipCode,
-        country,
-        isDefault: isDefault || false,
-      },
+    const user = await requireUser();
+    const data = addressData(await readBody(req));
+    const result = await serializable(async (tx) => {
+      if (data.isDefault)
+        await tx.address.updateMany({
+          where: { userId: user.id, isDefault: true },
+          data: { isDefault: false },
+        });
+      return tx.address.create({ data: { userId: user.id, ...data } });
     });
-
-    return NextResponse.json(newAddress);
+    return safeJson(result, { status: 201 });
   } catch (error) {
-    console.error('Error creating address:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return errorResponse(error);
   }
 }
 
 export async function PUT(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  if (!session || !session.user) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
-  const { addressId, recipient, phoneNumber, address, district, province, zipCode, country, isDefault } = await req.json();
-  const userId = (session.user as { id: string }).id;
-
   try {
-    const existingAddress = await prisma.address.findUnique({
-      where: { id: addressId },
+    const user = await requireUser();
+    const body = await readBody(req);
+    if (!positiveInt(body.addressId)) throw new HttpError(400, "Invalid address ID");
+    const addressId = body.addressId;
+    const data = addressData(body);
+    const result = await serializable(async (tx) => {
+      const existing = await tx.address.findUnique({ where: { id: addressId } });
+      if (!existing) throw new HttpError(404, "Address not found");
+      if (existing.userId !== user.id && user.role !== "ADMIN")
+        throw new HttpError(403, "Forbidden");
+      if (data.isDefault)
+        await tx.address.updateMany({
+          where: { userId: existing.userId, isDefault: true },
+          data: { isDefault: false },
+        });
+      return tx.address.update({ where: { id: addressId }, data });
     });
-
-    // ตรวจสอบว่า Address นี้เป็นของผู้ใช้คนนี้หรือไม่ (หรือเป็น Admin)
-    if (existingAddress?.userId !== userId && !(await isAdmin(req))) {
-      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
-    }
-
-    // ถ้ากำลังตั้งที่อยู่นี้เป็นที่อยู่เริ่มต้น ต้องรีเซ็ตที่อยู่เริ่มต้นของผู้ใช้อื่นก่อน
-    if (isDefault) {
-      await prisma.address.updateMany({
-        where: { userId, isDefault: true },
-        data: { isDefault: false },
-      });
-    }
-
-    const updatedAddress = await prisma.address.update({
-      where: { id: addressId },
-      data: {
-        recipient,
-        phoneNumber,
-        address,
-        district,
-        province,
-        zipCode,
-        country,
-        isDefault: isDefault || false,
-      },
-    });
-
-    return NextResponse.json(updatedAddress);
+    return safeJson(result);
   } catch (error) {
-    console.error('Error updating address:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return errorResponse(error);
   }
 }
 
 export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  if (!session || !session.user) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
-  const { addressId } = await req.json();
-  const userId = (session.user as { id: string }).id;
-
   try {
-    const existingAddress = await prisma.address.findUnique({
-      where: { id: addressId },
+    const user = await requireUser();
+    const { addressId } = await readBody(req);
+    if (!positiveInt(addressId)) throw new HttpError(400, "Invalid address ID");
+    const result = await prisma.address.deleteMany({
+      where: { id: addressId, ...(user.role === "ADMIN" ? {} : { userId: user.id }) },
     });
-
-    // ตรวจสอบว่า Address นี้เป็นของผู้ใช้คนนี้หรือไม่ (หรือเป็น Admin)
-    if (existingAddress?.userId !== userId && !(await isAdmin(req))) {
-      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
-    }
-
-    await prisma.address.delete({
-      where: { id: addressId },
-    });
-
-    return NextResponse.json({ message: 'Address deleted successfully' });
+    if (!result.count) throw new HttpError(404, "Address not found");
+    return safeJson({ message: "Address deleted successfully" });
   } catch (error) {
-    console.error('Error deleting address:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return errorResponse(error);
   }
 }
+
+export const dynamic = "force-dynamic";

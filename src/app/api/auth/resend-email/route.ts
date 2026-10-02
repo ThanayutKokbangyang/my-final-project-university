@@ -1,9 +1,9 @@
-import { PrismaClient } from '@prisma/client';
-import { NextRequest, NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
-import { randomBytes } from 'crypto';
+import { safeJson } from "@/lib/json";
+import prisma from "@/lib/prisma";
 
-const prisma = new PrismaClient();
+import { NextRequest, NextResponse } from "next/server";
+import nodemailer from "nodemailer";
+import { randomBytes } from "crypto";
 
 type ResendRequestBody = {
   email: string;
@@ -15,13 +15,9 @@ export async function POST(request: NextRequest) {
     const { email }: ResendRequestBody = await request.json();
 
     // Log the incoming email for debugging
-    console.log('Email received in request body:', email);
 
     if (!email) {
-      return NextResponse.json(
-        { error: 'Email is required for resending verification' },
-        { status: 400 }
-      );
+      return safeJson({ error: "Email is required for resending verification" }, { status: 400 });
     }
 
     // Find the user in the database
@@ -31,23 +27,16 @@ export async function POST(request: NextRequest) {
 
     // If the user is not found, return an error
     if (!user) {
-      console.log('User not found for email:', email);
-      return NextResponse.json(
-        { error: 'ไม่พบอีเมลนี้ในระบบ กรุณาลงทะเบียนก่อน' },
-        { status: 400 }
-      );
+      return safeJson({ error: "ไม่พบอีเมลนี้ในระบบ กรุณาลงทะเบียนก่อน" }, { status: 400 });
     }
 
     // If the email is already verified, return a message
     if (user.emailVerified) {
-      return NextResponse.json(
-        { message: 'อีเมลนี้ได้รับการยืนยันแล้ว' },
-        { status: 400 }
-      );
+      return safeJson({ message: "อีเมลนี้ได้รับการยืนยันแล้ว" }, { status: 400 });
     }
 
     // Create a new email verification token
-    const token = randomBytes(32).toString('hex');
+    const token = randomBytes(32).toString("hex");
 
     // Check if there's an existing verification token
     const existingToken = await prisma.verificationToken.findFirst({
@@ -55,14 +44,13 @@ export async function POST(request: NextRequest) {
     });
 
     // Log the existing token details for debugging
-    console.log('Existing token details:', existingToken);
 
     // Upsert the verification token in the database
     await prisma.verificationToken.upsert({
       where: {
         identifier_token: {
           identifier: email,
-          token: existingToken?.token ?? '', // Fallback to an empty string if no existing token
+          token: existingToken?.token ?? "", // Fallback to an empty string if no existing token
         },
       },
       update: {
@@ -78,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Configure Nodemailer transporter
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      service: "gmail",
       auth: {
         user: process.env.GMAIL_USER,
         pass: process.env.GMAIL_PASS,
@@ -89,7 +77,7 @@ export async function POST(request: NextRequest) {
     const mailOptions = {
       from: process.env.GMAIL_USER,
       to: email,
-      subject: 'ยืนยันอีเมลของคุณอีกครั้ง',
+      subject: "ยืนยันอีเมลของคุณอีกครั้ง",
       html: `
         <h3>สวัสดี,</h3>
         <p>โปรดคลิกลิงก์ด้านล่างเพื่อยืนยันอีเมลของคุณ:</p>
@@ -101,15 +89,14 @@ export async function POST(request: NextRequest) {
     // Send the email using Nodemailer
     await transporter.sendMail(mailOptions);
 
-    return NextResponse.json({
-      message: 'ส่งอีเมลยืนยันใหม่แล้ว กรุณาตรวจสอบอีเมลของคุณ',
+    return safeJson({
+      message: "ส่งอีเมลยืนยันใหม่แล้ว กรุณาตรวจสอบอีเมลของคุณ",
     });
   } catch (error) {
     // Log any unexpected errors for debugging
-    console.error('Error during resending email:', error);
-    return NextResponse.json(
-      { error: 'เกิดข้อผิดพลาดในการส่งอีเมลยืนยันใหม่' },
-      { status: 500 }
-    );
+    console.error("Error during resending email:", error);
+    return safeJson({ error: "เกิดข้อผิดพลาดในการส่งอีเมลยืนยันใหม่" }, { status: 500 });
   }
 }
+
+export const dynamic = "force-dynamic";

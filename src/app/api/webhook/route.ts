@@ -1,111 +1,41 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient, OrderStatus } from '@prisma/client';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, { apiVersion: '2024-09-30.acacia' });
-const prisma = new PrismaClient();
+import { safeJson } from "@/lib/json";
+import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
+import prisma from "@/lib/prisma";
+import { getStripe } from "@/lib/stripe";
+import { completePayment, releaseReservation } from "@/lib/payments";
+import { errorResponse, HttpError } from "@/lib/http";
 
 export async function POST(req: NextRequest) {
-  if (req.method !== 'POST') {
-    return NextResponse.json({ message: 'Method not allowed' }, { status: 405 });
-  }
-
-  // Parse event data directly from request body (no signature verification)
-  const event = await req.json() as Stripe.Event;
-
-  // Handle the event
-  switch (event.type) {
-    case 'checkout.session.completed':
-      await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
-      break;
-    case 'charge.updated':
-      await handleChargeUpdated(event.data.object as Stripe.Charge);
-      break;
-    default:
-      console.warn(`Unhandled event type: ${event.type}`);
-  }
-
-  // Return a 200 response to acknowledge receipt of the event
-  return NextResponse.json({ received: true });
-}
-
-async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
-  const userId = session.metadata?.userId;
-  const addressId = session.metadata?.addressId;
-  const promotionCodeId = session.metadata?.promotionCodeId;
-  const paymentIntentId = session.payment_intent as string;
-
-  if (!userId || !paymentIntentId) {
-    console.error('User ID or payment intent ID is missing in session metadata.');
-    return;
-  }
-
   try {
-    // Find the order by stripeSessionId (i.e., stripePaymentId)
-    const order = await prisma.order.findFirst({
-      where: { stripePaymentId: session.id },
-    });
-
-    if (!order) {
-      console.warn(`No matching order found for stripe session ID: ${session.id}`);
-      return;
+    const secret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!secret) throw new HttpError(503, "Webhook is not configured");
+    const signature = req.headers.get("stripe-signature");
+    if (!signature) throw new HttpError(400, "Missing webhook signature");
+    let event: Stripe.Event;
+    try {
+      event = getStripe().webhooks.constructEvent(await req.text(), signature, secret);
+    } catch {
+      throw new HttpError(400, "Invalid webhook signature");
     }
-
-    // Now update the order by using the unique `id` of the order
-    await prisma.order.update({
-      where: { id: order.id },
-      data: {
-        isPaid: true,
-        status: OrderStatus.PENDING, // Assuming this is the initial status
-        paymentStatus: 'paid',
-      },
-    });
-
-    console.log(`Order updated successfully for user ${userId} with paymentIntentId ${paymentIntentId}`);
+    if (
+      event.type === "checkout.session.completed" ||
+      event.type === "checkout.session.async_payment_succeeded"
+    ) {
+      await completePayment(event.data.object as Stripe.Checkout.Session);
+    } else if (
+      event.type === "checkout.session.expired" ||
+      event.type === "checkout.session.async_payment_failed"
+    ) {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const order = await prisma.order.findFirst({ where: { stripePaymentId: session.id } });
+      if (!order) throw new HttpError(409, "Order is not ready yet");
+      await releaseReservation(order.id, session.id);
+    }
+    return safeJson({ received: true });
   } catch (error) {
-    console.error(`Error processing checkout session: ${error instanceof Error ? error.message : error}`);
+    return errorResponse(error);
   }
 }
 
-async function handleChargeUpdated(charge: Stripe.Charge) {
-  const paymentIntentId = charge.payment_intent as string;
-
-  if (!paymentIntentId) {
-    console.warn('No payment intent ID found in charge event.');
-    return;
-  }
-
-  try {
-    // Retrieve the checkout session ID using the payment intent ID
-    const session = await stripe.checkout.sessions.list({
-      payment_intent: paymentIntentId,
-    });
-
-    if (!session.data[0]) {
-      console.warn(`No matching session found for payment intent ID: ${paymentIntentId}`);
-      return;
-    }
-
-    const stripeSessionId = session.data[0].id;
-
-    // Find the order by stripeSessionId
-    const order = await prisma.order.findFirst({
-      where: { stripePaymentId: stripeSessionId },
-    });
-
-    if (order) {
-      await prisma.order.update({
-        where: { id: order.id },
-        data: {
-          status: OrderStatus.PENDING, // Assuming PAID is a valid status
-          paymentStatus: charge.status,
-        },
-      });
-      console.log(`Order ${order.id} updated to status PAID.`);
-    } else {
-      console.warn(`No matching order found for stripe session ID: ${stripeSessionId}`);
-    }
-  } catch (error) {
-    console.error(`Error updating order for charge event: ${error instanceof Error ? error.message : error}`);
-  }
-}
+export const dynamic = "force-dynamic";

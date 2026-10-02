@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '../../auth/authOptions';
+import { safeJson } from "@/lib/json";
+import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
 
-const prisma = new PrismaClient();
+import { authOptions } from "../../auth/authOptions";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
 
-  if (!session || !session.user) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) {
+    return safeJson({ message: "Unauthorized" }, { status: 401 });
   }
 
   const userId = (session.user as { id: string }).id;
@@ -21,15 +21,20 @@ export async function GET(req: NextRequest) {
         userId,
       },
       include: {
-        product: true, // ดึงข้อมูลสินค้าที่เกี่ยวข้อง
+        product: { include: { Inventory: true } }, // ดึงข้อมูลสินค้าที่เกี่ยวข้อง
       },
     });
 
-    const favoriteProducts = favorites.map(favorite => favorite.product);
+    const favoriteProducts = favorites.map((favorite) => ({
+      ...favorite.product,
+      isFavorite: true,
+    }));
 
-    return NextResponse.json(favoriteProducts); // ส่งคืนข้อมูลสินค้าใน favorites
+    return safeJson(favoriteProducts); // ส่งคืนข้อมูลสินค้าใน favorites
   } catch (error) {
-    console.error('Failed to fetch favorite products:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    console.error("Failed to fetch favorite products:", error);
+    return safeJson({ message: "Internal server error" }, { status: 500 });
   }
 }
+
+export const dynamic = "force-dynamic";

@@ -1,11 +1,12 @@
 "use client";
+import { lowestAvailablePrice } from "@/lib/catalog";
 
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import Navbar from '../../../components/Navbar';
-import ProductCard from '../../../components/ProductCard';
+import React, { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import Navbar from "../../../components/Navbar";
+import ProductCard from "../../../components/ProductCard";
 import { Inventory } from "@prisma/client";
-import Footer from '@/app/components/Footer';
+import Footer from "@/app/components/Footer";
 
 const CategoryProducts: React.FC = () => {
   const { category } = useParams();
@@ -13,7 +14,7 @@ const CategoryProducts: React.FC = () => {
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
   const productsPerPage = 8;
@@ -28,27 +29,22 @@ const CategoryProducts: React.FC = () => {
       try {
         const response = await fetch("/api/products");
         if (!response.ok) {
-          throw new Error('Failed to fetch products');
+          throw new Error("Failed to fetch products");
         }
         const data = await response.json();
 
         // Fetch inventories to get prices
-        const productsWithPrices = await Promise.all(
-          data.map(async (product: any) => {
-            const response = await fetch(`/api/inventories?productId=${product.id}`);
-            const inventories: Inventory[] = await response.json();
-            const prices = inventories.map((inv) => Number(inv.price));
-            const lowestPrice = Math.min(...prices);
-            return { ...product, lowestPrice };
-          })
-        );
+        const productsWithPrices = data.map((product: any) => ({
+          ...product,
+          lowestPrice: lowestAvailablePrice(product.Inventory ?? []),
+        }));
 
         setProducts(productsWithPrices);
       } catch (err) {
         if (err instanceof Error) {
           setError(err.message);
         } else {
-          setError('An unknown error occurred');
+          setError("An unknown error occurred");
         }
       } finally {
         setLoading(false);
@@ -61,15 +57,16 @@ const CategoryProducts: React.FC = () => {
   // Filter products based on category and price
   useEffect(() => {
     if (category && products.length > 0) {
-      const filtered = products.filter(product => {
-        if (category === 'new') {
+      const filtered = products.filter((product) => {
+        if (category === "new") {
           return product.isNew;
         }
 
         const productGender = Array.isArray(product.gender) ? product.gender[0] : product.gender;
-        const matchesCategory = typeof category === 'string' && typeof productGender === 'string'
-          ? productGender.toLowerCase() === category.toLowerCase()
-          : false;
+        const matchesCategory =
+          typeof category === "string" && typeof productGender === "string"
+            ? productGender.toLowerCase() === category.toLowerCase()
+            : false;
 
         // Price filter
         const matchesPrice =
@@ -98,18 +95,25 @@ const CategoryProducts: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      <div className='mt-6'> {/* แสดงข้อความสำหรับหมวดหมู่ */}
-          <h2 className="text-3xl font-extrabold text-gray-800 mb-4 text-center">
-            {category === 'male' ? 'สำหรับ ผู้ชาย' : 
-             category === 'female' ? 'สำหรับ ผู้หญิง' : 
-             category === 'unisex' ? 'สำหรับ Unisex' : 
-             category === 'new' ? 'สินค้าใหม่' : 
-             'สินค้า'}
-          </h2></div>
+      <div className="mt-6">
+        {" "}
+        {/* แสดงข้อความสำหรับหมวดหมู่ */}
+        <h2 className="text-3xl font-extrabold text-gray-800 mb-4 text-center">
+          {category === "male"
+            ? "สำหรับ ผู้ชาย"
+            : category === "female"
+              ? "สำหรับ ผู้หญิง"
+              : category === "unisex"
+                ? "สำหรับ Unisex"
+                : category === "new"
+                  ? "สินค้าใหม่"
+                  : "สินค้า"}
+        </h2>
+      </div>
       <div className="flex flex-1 p-6 flex-col lg:flex-row">
         {/* Price Range Filter */}
         <div className="w-full lg:w-1/4 bg-white">
-          <div className='border border-black p-4'>
+          <div className="border border-black p-4">
             <h3 className="font-bold mb-2">ช่วงราคา</h3>
             <div className="mb-4">
               <label className="block mb-2">ราคาต่ำสุด: {minPrice}</label>
@@ -128,7 +132,7 @@ const CategoryProducts: React.FC = () => {
             </div>
 
             <div>
-              <label className="block mb-2">ราคาสูงสุด: {maxPrice !== null ? maxPrice : ''}</label>
+              <label className="block mb-2">ราคาสูงสุด: {maxPrice !== null ? maxPrice : ""}</label>
               <input
                 type="range"
                 min={minPrice}
@@ -153,9 +157,7 @@ const CategoryProducts: React.FC = () => {
             ) : error ? (
               <p className="text-center text-red-500">{error}</p>
             ) : currentProducts.length > 0 ? (
-              currentProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))
+              currentProducts.map((product) => <ProductCard key={product.id} product={product} />)
             ) : (
               <p className="text-center">No products found.</p>
             )}

@@ -1,0 +1,42 @@
+name: Verify project
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_only
+          MYSQL_DATABASE: eclat_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ptest_only"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      DATABASE_URL: mysql://root:test_only@127.0.0.1:3306/eclat_test
+      TEST_DATABASE_URL: mysql://root:test_only@127.0.0.1:3306/eclat_test
+      NEXTAUTH_SECRET: ci_test_secret_only
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:migrate
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build
+      - run: npm run typecheck

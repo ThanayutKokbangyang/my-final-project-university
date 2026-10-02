@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import Navbar from '../components/Navbar';
-import AdvertisementPreview from '../components/AdvertisementPreview';
-import ProductCard from '../components/ProductCard';
-import { Advertisement } from '@prisma/client';
-import { useSession } from 'next-auth/react'; // Import useSession for authentication
-import { useRouter } from 'next/navigation';
-import Loading from '../components/Loading';
+import React, { useEffect, useState } from "react";
+import Navbar from "../components/Navbar";
+import AdvertisementPreview from "../components/AdvertisementPreview";
+import ProductCard from "../components/ProductCard";
+import { Advertisement } from "@prisma/client";
+import { useSession } from "next-auth/react"; // Import useSession for authentication
+import { useRouter } from "next/navigation";
+import Loading from "../components/Loading";
 
 const Favorites: React.FC = () => {
   const { data: session, status } = useSession(); // Session hook from NextAuth
@@ -20,22 +20,22 @@ const Favorites: React.FC = () => {
   // Fetch favorite products
   const fetchFavoriteProducts = async (): Promise<void> => {
     try {
-      const response = await fetch('/api/favorites/products'); // API for fetching favorite products
+      const response = await fetch("/api/favorites/products"); // API for fetching favorite products
       if (!response.ok) {
-        throw new Error('Failed to fetch favorite products');
+        throw new Error("Failed to fetch favorite products");
       }
       const data = await response.json();
 
       // Ensure the 'images' field is an array by splitting the 'image' field
       const productsWithImages = data.map((product: any) => ({
         ...product,
-        images: product.image ? product.image.split(',') : [], // Split the image string into an array
+        images: product.image ? product.image.split(",") : [], // Split the image string into an array
       }));
 
       setFavoriteProducts(productsWithImages);
     } catch (error) {
-      console.error('Failed to fetch favorite products:', error);
-      setError('Unable to fetch favorite products');
+      console.error("Failed to fetch favorite products:", error);
+      setError("Unable to fetch favorite products");
     } finally {
       setLoading(false);
     }
@@ -44,26 +44,26 @@ const Favorites: React.FC = () => {
   // Fetch advertisements (optional)
   const fetchAds = async (): Promise<void> => {
     try {
-      const response = await fetch('/api/advertisements');
+      const response = await fetch("/api/advertisements");
       const data = await response.json();
       setAds(data);
     } catch (error) {
-      console.error('Failed to fetch advertisements:', error);
+      console.error("Failed to fetch advertisements:", error);
     }
   };
 
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === "authenticated") {
       // Fetch data if authenticated
       fetchFavoriteProducts();
       fetchAds();
-    } else if (status === 'unauthenticated') {
+    } else if (status === "unauthenticated") {
       // Redirect to login page if unauthenticated
-      router.push('/signin');
+      router.push("/signin");
     }
   }, [status, router]);
 
-  if (status === 'loading' || loading) {
+  if (status === "loading" || loading) {
     return <Loading />; // Show loading state
   }
 

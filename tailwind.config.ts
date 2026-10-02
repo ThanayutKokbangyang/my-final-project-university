@@ -12,13 +12,9 @@ const config: Config = {
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
-      borderColor: theme =>({
-       
-      })
+      borderColor: (theme) => ({}),
     },
   },
-  plugins: [
-   
-  ],
+  plugins: [],
 };
 export default config;

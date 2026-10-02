@@ -1,13 +1,13 @@
-'use client';
-import React, { useEffect, useState } from 'react';
-import { Icon } from '@iconify/react';
-import Link from 'next/link';
-import { useSession } from 'next-auth/react';
-import { useFavorite } from '../context/FavoriteContext';
-import { useSearch } from '../context/SearchContext';
-import { useCart } from '../context/CartContext';
-import { useRouter } from 'next/navigation';
-import debounce from 'lodash.debounce';
+"use client";
+import React, { useEffect, useState } from "react";
+import { Icon } from "@iconify/react";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useFavorite } from "../context/FavoriteContext";
+import { useSearch } from "../context/SearchContext";
+import { useCart } from "../context/CartContext";
+import { useRouter } from "next/navigation";
+import debounce from "lodash.debounce";
 
 interface Suggestion {
   id: string;
@@ -29,15 +29,15 @@ const Navbar: React.FC = () => {
     const fetchFavoriteCount = async () => {
       if (session && session.user) {
         try {
-          const response = await fetch('/api/favorites/count');
+          const response = await fetch("/api/favorites/count");
           const data = await response.json();
           if (response.ok) {
             setFavoriteCount(data.favoriteCount);
           } else {
-            console.error('Failed to fetch favorite count:', data.message);
+            console.error("Failed to fetch favorite count:", data.message);
           }
         } catch (error) {
-          console.error('Error fetching favorite count:', error);
+          console.error("Error fetching favorite count:", error);
         }
       }
     };
@@ -49,15 +49,15 @@ const Navbar: React.FC = () => {
   const fetchCartCount = async () => {
     if (session && session.user) {
       try {
-        const response = await fetch('/api/cart/count');
+        const response = await fetch("/api/cart/count");
         const data = await response.json();
         if (response.ok) {
           setCartCount(data.count);
         } else {
-          console.error('Failed to fetch cart count:', data.message);
+          console.error("Failed to fetch cart count:", data.message);
         }
       } catch (error) {
-        console.error('Error fetching cart count:', error);
+        console.error("Error fetching cart count:", error);
       }
     }
   };
@@ -77,13 +77,15 @@ const Navbar: React.FC = () => {
   const fetchSuggestions = async (term: string) => {
     if (term.trim()) {
       try {
-        const response = await fetch(`/api/products/suggestions?query=${encodeURIComponent(term.toLowerCase())}`);
+        const response = await fetch(
+          `/api/products/suggestions?query=${encodeURIComponent(term.toLowerCase())}`,
+        );
         if (response.ok) {
           const data = await response.json();
           setSuggestions(data);
         }
       } catch (error) {
-        console.error('Error fetching suggestions:', error);
+        console.error("Error fetching suggestions:", error);
       }
     } else {
       setSuggestions([]);
@@ -133,7 +135,7 @@ const Navbar: React.FC = () => {
                   value={searchTerm}
                   onChange={handleInputChange}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       handleSearch();
                     }
                   }}
@@ -146,7 +148,9 @@ const Navbar: React.FC = () => {
                         className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
                         onClick={() => {
                           setSearchTerm(suggestion.title);
-                          router.push(`/search-results?search=${encodeURIComponent(suggestion.title)}`);
+                          router.push(
+                            `/search-results?search=${encodeURIComponent(suggestion.title)}`,
+                          );
                           setShowSuggestions(false);
                         }}
                       >
@@ -158,7 +162,7 @@ const Navbar: React.FC = () => {
               </div>
 
               <div className="flex items-center space-x-2">
-                {status === 'loading' ? (
+                {status === "loading" ? (
                   <div>Loading...</div>
                 ) : session ? (
                   <Link href="/favorites" className="relative">
@@ -184,7 +188,7 @@ const Navbar: React.FC = () => {
                   )}
                 </Link>
 
-                {status === 'loading' ? (
+                {status === "loading" ? (
                   <div>Loading...</div>
                 ) : session ? (
                   <Link href="/userInfo">
@@ -210,12 +214,12 @@ const Navbar: React.FC = () => {
       </nav>
 
       <div
-        className={`fixed inset-0 bg-gray-800 bg-opacity-50 z-40 ${isSidebarOpen ? 'block' : 'hidden'}`}
+        className={`fixed inset-0 bg-gray-800 bg-opacity-50 z-40 ${isSidebarOpen ? "block" : "hidden"}`}
         onClick={() => setIsSidebarOpen(false)}
       ></div>
 
       <div
-        className={`fixed top-0 right-0 w-64 h-full bg-white shadow-lg z-50 transform ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} transition-transform duration-300`}
+        className={`fixed top-0 right-0 w-64 h-full bg-white shadow-lg z-50 transform ${isSidebarOpen ? "translate-x-0" : "translate-x-full"} transition-transform duration-300`}
       >
         <div className="flex justify-between items-center p-4 border-b">
           <h2 className="text-lg font-semibold">เมนู</h2>
@@ -227,13 +231,13 @@ const Navbar: React.FC = () => {
         </div>
 
         <div className="p-4">
-  <div className="flex flex-col space-y-4">
-    <Link href="/products/category/male">ผู้ชาย</Link>
-    <Link href="/products/category/female">ผู้หญิง</Link>
-    <Link href="/products/category/unisex">Unisex</Link>
-    <Link href="/products/category/new">ใหม่</Link>
-  </div>
-</div>
+          <div className="flex flex-col space-y-4">
+            <Link href="/products/category/male">ผู้ชาย</Link>
+            <Link href="/products/category/female">ผู้หญิง</Link>
+            <Link href="/products/category/unisex">Unisex</Link>
+            <Link href="/products/category/new">ใหม่</Link>
+          </div>
+        </div>
 
         <div className="p-4 border-t">
           <div className="relative flex items-center border border-gray-300 px-3 py-2">
@@ -245,7 +249,7 @@ const Navbar: React.FC = () => {
               value={searchTerm}
               onChange={handleInputChange}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === "Enter") {
                   handleSearch();
                 }
               }}

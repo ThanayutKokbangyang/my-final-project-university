@@ -1,23 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '../auth/authOptions';
+import { safeJson } from "@/lib/json";
+import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
 
-const prisma = new PrismaClient();
+import { authOptions } from "../auth/authOptions";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
 
-  if (!session || !session.user) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) {
+    return safeJson({ message: "Unauthorized" }, { status: 401 });
   }
 
   const userId = (session.user as { id: string }).id;
   const { productId }: { productId?: string | number } = await req.json();
-  const parsedProductId: number | undefined = typeof productId === 'string' ? parseInt(productId, 10) : productId;
+  const parsedProductId: number | undefined =
+    typeof productId === "string" ? parseInt(productId, 10) : productId;
 
   if (!parsedProductId) {
-    return NextResponse.json({ message: 'Product ID is required and must be a valid number' }, { status: 400 });
+    return safeJson(
+      { message: "Product ID is required and must be a valid number" },
+      { status: 400 },
+    );
   }
 
   try {
@@ -31,7 +35,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (existingFavorite) {
-      return NextResponse.json({ message: 'Product is already in favorites' }, { status: 400 });
+      return safeJson({ message: "Product is already in favorites" }, { status: 400 });
     }
 
     const newFavorite = await prisma.favorite.create({
@@ -41,26 +45,30 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ message: 'Product added to favorites', favorite: newFavorite });
+    return safeJson({ message: "Product added to favorites", favorite: newFavorite });
   } catch (error) {
-    console.error('Failed to handle adding to favorites:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    console.error("Failed to handle adding to favorites:", error);
+    return safeJson({ message: "Internal server error" }, { status: 500 });
   }
 }
 
 export async function DELETE(req: NextRequest) {
   const session = await getServerSession(authOptions);
 
-  if (!session || !session.user) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!session?.user?.id) {
+    return safeJson({ message: "Unauthorized" }, { status: 401 });
   }
 
   const userId = (session.user as { id: string }).id;
   const { productId }: { productId?: string | number } = await req.json();
-  const parsedProductId: number | undefined = typeof productId === 'string' ? parseInt(productId, 10) : productId;
+  const parsedProductId: number | undefined =
+    typeof productId === "string" ? parseInt(productId, 10) : productId;
 
   if (!parsedProductId) {
-    return NextResponse.json({ message: 'Product ID is required and must be a valid number' }, { status: 400 });
+    return safeJson(
+      { message: "Product ID is required and must be a valid number" },
+      { status: 400 },
+    );
   }
 
   try {
@@ -74,7 +82,7 @@ export async function DELETE(req: NextRequest) {
     });
 
     if (!existingFavorite) {
-      return NextResponse.json({ message: 'Product not found in favorites' }, { status: 404 });
+      return safeJson({ message: "Product not found in favorites" }, { status: 404 });
     }
 
     await prisma.favorite.delete({
@@ -86,9 +94,11 @@ export async function DELETE(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ message: 'Product removed from favorites' });
+    return safeJson({ message: "Product removed from favorites" });
   } catch (error) {
-    console.error('Failed to handle removing from favorites:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    console.error("Failed to handle removing from favorites:", error);
+    return safeJson({ message: "Internal server error" }, { status: 500 });
   }
 }
+
+export const dynamic = "force-dynamic";

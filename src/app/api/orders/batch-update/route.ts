@@ -1,21 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient, OrderStatus } from '@prisma/client';
-import { isAdmin } from '../../../util/isAdmin';
-
-const prisma = new PrismaClient();
+import { safeJson } from "@/lib/json";
+import { orderUserSelect } from "@/lib/users";
+import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
+import { OrderStatus } from "@prisma/client";
+import { isAdmin } from "../../../util/isAdmin";
 
 // GET: Fetch orders with optional filters
 export const GET = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { searchParams } = new URL(req.url);
-    const orderId = searchParams.get('orderId') || '';
-    const paymentStatus = searchParams.get('paymentStatus') || '';
-    const status = searchParams.get('status') || '';
+    const orderId = searchParams.get("orderId") || "";
+    const paymentStatus = searchParams.get("paymentStatus") || "";
+    const status = searchParams.get("status") || "";
 
     const orders = await prisma.order.findMany({
       where: {
@@ -24,7 +25,7 @@ export const GET = async (req: NextRequest) => {
         ...(status && { status: status as OrderStatus }),
       },
       include: {
-        user: true,
+        user: { select: orderUserSelect },
         orderItems: {
           include: {
             product: true,
@@ -34,10 +35,10 @@ export const GET = async (req: NextRequest) => {
       },
     });
 
-    return NextResponse.json(orders, { status: 200 });
+    return safeJson(orders, { status: 200 });
   } catch (error) {
-    console.error('Failed to fetch orders:', error);
-    return NextResponse.json({ error: 'Failed to fetch orders.' }, { status: 500 });
+    console.error("Failed to fetch orders:", error);
+    return safeJson({ error: "Failed to fetch orders." }, { status: 500 });
   }
 };
 
@@ -45,24 +46,24 @@ export const GET = async (req: NextRequest) => {
 export const PATCH = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { ids, status } = await req.json();
-    console.log('Received PATCH request with:', { ids, status }); // Log incoming data
+    // Log incoming data
 
     // Validate the input
     if (!Array.isArray(ids) || ids.length === 0 || !status) {
-      console.error('Validation error: Missing IDs or status');
-      return NextResponse.json({ error: 'Order IDs and status are required.' }, { status: 400 });
+      console.error("Validation error: Missing IDs or status");
+      return safeJson({ error: "Order IDs and status are required." }, { status: 400 });
     }
 
     // Ensure the status is valid
-    const validStatuses = ['PENDING', 'SHIPPED', 'TRANSIT', 'DELIVERED'];
+    const validStatuses = ["PENDING", "SHIPPED", "TRANSIT", "DELIVERED"];
     if (!validStatuses.includes(status)) {
-      console.error('Validation error: Invalid status');
-      return NextResponse.json({ error: 'Invalid order status.' }, { status: 400 });
+      console.error("Validation error: Invalid status");
+      return safeJson({ error: "Invalid order status." }, { status: 400 });
     }
 
     const updatedOrders = await Promise.all(
@@ -71,7 +72,7 @@ export const PATCH = async (req: NextRequest) => {
           where: { id },
           data: { status },
           include: {
-            user: true,
+            user: { select: orderUserSelect },
             orderItems: {
               include: {
                 product: true,
@@ -80,14 +81,15 @@ export const PATCH = async (req: NextRequest) => {
             },
           },
         });
-      })
+      }),
     );
 
-    console.log('Orders updated successfully:', updatedOrders); // Log updated orders
-    return NextResponse.json(updatedOrders, { status: 200 });
+    // Log updated orders
+    return safeJson(updatedOrders, { status: 200 });
   } catch (error) {
-    console.error('Failed to update order statuses:', error);
-    return NextResponse.json({ error: 'Failed to update order statuses.' }, { status: 500 });
+    console.error("Failed to update order statuses:", error);
+    return safeJson({ error: "Failed to update order statuses." }, { status: 500 });
   }
 };
 
+export const dynamic = "force-dynamic";

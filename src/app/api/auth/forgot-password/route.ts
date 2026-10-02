@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import crypto from 'crypto';
-import nodemailer from 'nodemailer';
+import { safeJson } from "@/lib/json";
+import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 
-const prisma = new PrismaClient();
+import crypto from "crypto";
+import nodemailer from "nodemailer";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,11 +15,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return safeJson({ error: "User not found" }, { status: 404 });
     }
 
     // Generate a reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetToken = crypto.randomBytes(32).toString("hex");
     const resetPasswordExpires = new Date(Date.now() + 600000); // 10 minute expiration
 
     // Update the user with the unhashed reset token and expiration date
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     // Set up nodemailer transporter
     const transporter = nodemailer.createTransport({
-      service: 'Gmail',
+      service: "Gmail",
       auth: {
         user: process.env.GMAIL_USER,
         pass: process.env.GMAIL_PASS,
@@ -47,16 +47,18 @@ export async function POST(request: NextRequest) {
     const mailOptions = {
       from: process.env.GMAIL_USER,
       to: email,
-      subject: 'Password Reset',
+      subject: "Password Reset",
       text: `คุณได้ทำการร้องขอการรีเซ็ตรหัสผ่าน กรุณาคลิกลิงก์ด้านล่างเพื่อรีเซ็ตรหัสผ่านของคุณ:\n\n${resetUrl}`,
     };
 
     // Send the email
     await transporter.sendMail(mailOptions);
 
-    return NextResponse.json({ message: 'Password reset link sent to your email' });
+    return safeJson({ message: "Password reset link sent to your email" });
   } catch (error) {
-    console.error('Error during forgot password process:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error("Error during forgot password process:", error);
+    return safeJson({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
+export const dynamic = "force-dynamic";

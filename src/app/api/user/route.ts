@@ -1,173 +1,127 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '../auth/authOptions';
-import bcrypt from 'bcrypt';
-import { isAdmin } from '../../util/isAdmin'; // นำเข้า isAdmin จากไฟล์ที่แยกไว้
+import { NextRequest } from "next/server";
+import { Prisma, Role } from "@prisma/client";
+import bcrypt from "bcrypt";
+import prisma from "@/lib/prisma";
+import { safeUserSelect } from "@/lib/users";
+import { errorResponse, HttpError, readBody, requireUser } from "@/lib/http";
+import { safeJson } from "@/lib/json";
 
-const prisma = new PrismaClient();
+function passwordValid(value: unknown): value is string {
+  return typeof value === "string" && value.length >= 8 && Buffer.byteLength(value, "utf8") <= 72;
+}
+function profileData(body: Record<string, unknown>) {
+  const data: { name?: string; email?: string; role?: Role } = {};
+  if (body.name !== undefined) {
+    if (typeof body.name !== "string" || !body.name.trim() || body.name.length > 100)
+      throw new HttpError(400, "Invalid name");
+    data.name = body.name.trim();
+  }
+  if (body.email !== undefined) {
+    if (
+      typeof body.email !== "string" ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email) ||
+      body.email.length > 254
+    )
+      throw new HttpError(400, "Invalid email");
+    data.email = body.email;
+  }
+  if (body.role !== undefined) {
+    if (body.role !== "USER" && body.role !== "ADMIN")
+      throw new HttpError(400, "Invalid user role");
+    data.role = body.role;
+  }
+  return data;
+}
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  if (!session || !session.user) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
-  const userId = (session.user as { id: string }).id;
-
-  const { searchParams } = new URL(req.url);
-  const userIdParam = searchParams.get('userId'); // ADMIN ต้องการดูข้อมูลของคนอื่น
-
   try {
-    if (await isAdmin(req)) {
-      // กรณีที่เป็น ADMIN และต้องการดูข้อมูลของคนอื่น
-      if (userIdParam) {
-        const user = await prisma.user.findUnique({
-          where: { id: userIdParam },
-          include: { accounts: true,Address: true }, // ดึงข้อมูลจาก Account model ด้วย
-        });
-        
-        if (user) {
-          const provider = user.accounts.length > 0 ? user.accounts[0].provider : 'credentials'; // ตรวจสอบ provider
-          return NextResponse.json({ ...user, provider });
-        } else {
-          return NextResponse.json({ message: 'User not found' }, { status: 404 });
-        }
-      } else {
-        // ถ้าไม่มี userIdParam ให้แสดงผู้ใช้ทั้งหมด
-        const users = await prisma.user.findMany({ include: { accounts: true , Address: true} });
-        const usersWithProvider = users.map((user) => ({
-          ...user,
-          provider: user.accounts.length > 0 ? user.accounts[0].provider : 'credentials',
-        }));
-        return NextResponse.json(usersWithProvider);
-      }
-    } else {
-      // กรณีผู้ใช้ทั่วไป ให้ดึงข้อมูลของตนเอง
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: { accounts: true, Address: true}, // ดึงข้อมูลจาก Account model ด้วย
-      });
-
-      if (user) {
-        const provider = user.accounts.length > 0 ? user.accounts[0].provider : 'credentials'; // ตรวจสอบ provider
-        return NextResponse.json({ ...user, provider });
-      } else {
-        return NextResponse.json({ message: 'User not found' }, { status: 404 });
-      }
-    }
+    const user = await requireUser();
+    const requestedId = req.nextUrl.searchParams.get("userId");
+    const isList =
+      user.role === "ADMIN" && !requestedId && req.nextUrl.searchParams.get("self") !== "1";
+    const withProvider = (entry: Prisma.UserGetPayload<{ select: typeof safeUserSelect }>) => ({
+      ...entry,
+      provider: entry.accounts[0]?.provider ?? "credentials",
+    });
+    if (isList)
+      return safeJson((await prisma.user.findMany({ select: safeUserSelect })).map(withProvider));
+    const targetId = user.role === "ADMIN" && requestedId ? requestedId : user.id;
+    const entry = await prisma.user.findUnique({ where: { id: targetId }, select: safeUserSelect });
+    if (!entry) throw new HttpError(404, "User not found");
+    return safeJson(withProvider(entry));
   } catch (error) {
-    console.error('Failed to fetch user data:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return errorResponse(error);
   }
 }
-
-
 export async function POST(req: NextRequest) {
-  if (!(await isAdmin(req))) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
-  const { name, email, password, role } = await req.json();
-
-  if (!name || !email || !password || !role) {
-    return NextResponse.json({ message: 'All fields are required' }, { status: 400 });
-  }
-
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = await prisma.user.create({
+    const user = await requireUser();
+    if (user.role !== "ADMIN") throw new HttpError(403, "Admins only");
+    const body = await readBody(req);
+    const data = profileData(body);
+    if (!data.name || !data.email || !data.role || !passwordValid(body.password))
+      throw new HttpError(
+        400,
+        "Name, email, role, and a password of 8 characters or more are required",
+      );
+    const entry = await prisma.user.create({
       data: {
-        name,
-        email,
-        password: hashedPassword,
-        role,
+        ...data,
+        email: data.email,
+        password: await bcrypt.hash(body.password, 10),
+        emailVerified: new Date(),
       },
+      select: safeUserSelect,
     });
-
-    return NextResponse.json({ message: 'User added successfully', user: newUser });
+    return safeJson({ message: "User added successfully", user: entry }, { status: 201 });
   } catch (error) {
-    console.error('Failed to add user:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return errorResponse(error);
   }
 }
-
 export async function PUT(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  
-  if (!session || !session.user) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
-  const userId = (session.user as { id: string })?.id;
-  const { userIdParam, name, email, currentPassword, newPassword, role } = await req.json();
-
-  // ตรวจสอบเฉพาะ admin ถึงสามารถแก้ไข role ได้
-  if (role && !(await isAdmin(req))) {
-    return NextResponse.json({ message: 'Only admin can change user roles' }, { status: 403 });
-  }
-
-  // ถ้าไม่ใช่ admin ผู้ใช้ต้องแก้ไขได้เฉพาะข้อมูลของตัวเองเท่านั้น
-  if (!userIdParam || userId !== userIdParam) {
-    return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
-  }
-
   try {
-    // ตรวจสอบรหัสผ่านเก่า
-    if (currentPassword && newPassword) {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
+    const user = await requireUser();
+    const body = await readBody(req);
+    if (body.userIdParam !== user.id) throw new HttpError(403, "Forbidden");
+    if (body.role !== undefined && user.role !== "ADMIN")
+      throw new HttpError(403, "Only admins can change user roles");
+    const data: Prisma.UserUpdateInput = profileData(body);
+    if (body.newPassword) {
+      if (typeof body.currentPassword !== "string" || !body.currentPassword)
+        throw new HttpError(400, "Current password is required");
+      if (!passwordValid(body.newPassword))
+        throw new HttpError(
+          400,
+          "Password must contain at least 8 characters and at most 72 bytes",
+        );
+      const existing = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { password: true },
       });
-
-      if (user && user.password) {
-        const isMatch = await bcrypt.compare(currentPassword, user.password);
-        if (!isMatch) {
-          return NextResponse.json({ message: 'Current password is incorrect' }, { status: 400 });
-        }
-      } else {
-        // If password is null, handle it as an error (e.g., for OAuth users who don't have a password)
-        return NextResponse.json({ message: 'Password is not set for this user' }, { status: 400 });
-      }
+      if (!existing?.password || !(await bcrypt.compare(body.currentPassword, existing.password)))
+        throw new HttpError(400, "Current password is incorrect");
+      data.password = await bcrypt.hash(body.newPassword, 10);
     }
-
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        name,
-        email,
-        password: newPassword ? await bcrypt.hash(newPassword, 10) : undefined,
-        role,
-      },
-    });
-
-    return NextResponse.json(updatedUser);
+    return safeJson(
+      await prisma.user.update({ where: { id: user.id }, data, select: safeUserSelect }),
+    );
   } catch (error) {
-    console.error('Failed to update user data:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return errorResponse(error);
   }
 }
-
 export async function DELETE(req: NextRequest) {
-  if (!(await isAdmin(req))) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
-  const { userId } = await req.json(); // Ensure 'userId' is being destructured from the body
-
-  if (!userId) {
-    return NextResponse.json({ message: 'User ID is required' }, { status: 400 });
-  }
-
   try {
-    await prisma.user.delete({
-      where: { id: userId },
-    });
-
-    return NextResponse.json({ message: 'User deleted successfully' });
+    const user = await requireUser();
+    if (user.role !== "ADMIN") throw new HttpError(403, "Admins only");
+    const { userId } = await readBody(req);
+    if (typeof userId !== "string" || !userId) throw new HttpError(400, "User ID is required");
+    if (userId === user.id) throw new HttpError(409, "Cannot delete the account currently in use");
+    if (await prisma.order.count({ where: { userId, stockReserved: true } }))
+      throw new HttpError(409, "Cancel active checkouts before deleting this user");
+    await prisma.user.delete({ where: { id: userId } });
+    return safeJson({ message: "User deleted successfully" });
   } catch (error) {
-    console.error('Failed to delete user:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return errorResponse(error);
   }
 }
+export const dynamic = "force-dynamic";

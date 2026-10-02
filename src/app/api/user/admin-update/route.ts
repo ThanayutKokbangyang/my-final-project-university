@@ -1,42 +1,52 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '../../auth/authOptions';
-import bcrypt from 'bcrypt';
-import { isAdmin } from '../../../util/isAdmin';
-
-const prisma = new PrismaClient();
+import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
+import bcrypt from "bcrypt";
+import prisma from "@/lib/prisma";
+import { safeUserSelect } from "@/lib/users";
+import { errorResponse, HttpError, readBody, requireUser } from "@/lib/http";
+import { safeJson } from "@/lib/json";
 
 export async function PATCH(req: NextRequest) {
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user || !(await isAdmin(req))) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  try {
+    const user = await requireUser();
+    if (user.role !== "ADMIN") throw new HttpError(403, "Admins only");
+    const body = await readBody(req);
+    if (typeof body.userId !== "string" || !body.userId)
+      throw new HttpError(400, "User ID is required");
+    const data: Prisma.UserUpdateInput = {};
+    if (body.name !== undefined) {
+      if (typeof body.name !== "string" || !body.name.trim() || body.name.length > 100)
+        throw new HttpError(400, "Invalid name");
+      data.name = body.name.trim();
     }
-  
-    const { userId, name, email, password, role } = await req.json();
-    
-    if (!userId) {
-      return NextResponse.json({ message: 'User ID is required' }, { status: 400 });
+    if (body.email !== undefined) {
+      if (typeof body.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email))
+        throw new HttpError(400, "Invalid email");
+      data.email = body.email;
     }
-    
-    try {
-      const updateData: any = {};
-      if (name) updateData.name = name;
-      if (email) updateData.email = email;
-      if (role) updateData.role = role;
-      if (password) {
-        updateData.password = await bcrypt.hash(password, 10);
-      }
-  
-      const updatedUser = await prisma.user.update({
-        where: { id: userId },
-        data: updateData,
-      });
-  
-      return NextResponse.json({ message: 'User updated successfully', user: updatedUser });
-    } catch (error) {
-      console.error('Failed to update user:', error);
-      return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    if (body.role !== undefined) {
+      if (body.role !== "USER" && body.role !== "ADMIN") throw new HttpError(400, "Invalid role");
+      if (body.userId === user.id && body.role !== "ADMIN")
+        throw new HttpError(409, "Cannot remove your own admin role here");
+      data.role = body.role;
     }
+    if (body.password) {
+      if (
+        typeof body.password !== "string" ||
+        body.password.length < 8 ||
+        Buffer.byteLength(body.password, "utf8") > 72
+      )
+        throw new HttpError(400, "Invalid password");
+      data.password = await bcrypt.hash(body.password, 10);
+    }
+    const entry = await prisma.user.update({
+      where: { id: body.userId },
+      data,
+      select: safeUserSelect,
+    });
+    return safeJson({ message: "User updated successfully", user: entry });
+  } catch (error) {
+    return errorResponse(error);
   }
-  
+}
+export const dynamic = "force-dynamic";

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
@@ -50,9 +50,7 @@ const ForgotPassword: React.FC = () => {
     const storedCooldownEndTime = localStorage.getItem("cooldownEndTime");
 
     if (storedCooldownEndTime) {
-      const remainingTime = Math.floor(
-        (parseInt(storedCooldownEndTime) - Date.now()) / 1000
-      );
+      const remainingTime = Math.floor((parseInt(storedCooldownEndTime) - Date.now()) / 1000);
 
       if (remainingTime > 0) {
         setIsDisabled(true);
@@ -80,8 +78,10 @@ const ForgotPassword: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      <div className="flex-grow flex justify-center items-center py-12 px-4 sm:px-6 lg:px-8">       
-         <div className="max-w-2xl w-full space-y-8 bg-white p-4 md:p-8 border border-black"> {/* เพิ่ม p-4 สำหรับ mobile */}
+      <div className="flex-grow flex justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-2xl w-full space-y-8 bg-white p-4 md:p-8 border border-black">
+          {" "}
+          {/* เพิ่ม p-4 สำหรับ mobile */}
           <h2 className="text-2xl md:text-3xl font-bold text-black mb-6">ลืมรหัสผ่าน</h2>
           <form className="space-y-6" onSubmit={handleForgotPassword}>
             <div className="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-4">
@@ -99,12 +99,8 @@ const ForgotPassword: React.FC = () => {
               />
             </div>
 
-            {errorMessage && (
-              <p className="text-red-600 text-sm">{errorMessage}</p>
-            )}
-            {successMessage && (
-              <p className="text-green-600 text-sm mt-4">{successMessage}</p>
-            )}
+            {errorMessage && <p className="text-red-600 text-sm">{errorMessage}</p>}
+            {successMessage && <p className="text-green-600 text-sm mt-4">{successMessage}</p>}
 
             <button
               type="submit"
@@ -114,12 +110,13 @@ const ForgotPassword: React.FC = () => {
               {isSubmitting
                 ? "กำลังส่งโปรดรอ..."
                 : isDisabled
-                ? `กรุณารอ ${Math.floor(timer / 60)}:${('0' + (timer % 60)).slice(-2)} นาที`
-                : "รีเซ็ตรหัสผ่าน"}
+                  ? `กรุณารอ ${Math.floor(timer / 60)}:${("0" + (timer % 60)).slice(-2)} นาที`
+                  : "รีเซ็ตรหัสผ่าน"}
             </button>
 
             <p className="text-xs text-gray-500 mt-6">
-              กรุณาตรวจสอบอีเมลของคุณหลังจากกดปุ่มรีเซ็ตรหัสผ่าน คุณจะได้รับลิงค์สำหรับตั้งรหัสผ่านใหม่
+              กรุณาตรวจสอบอีเมลของคุณหลังจากกดปุ่มรีเซ็ตรหัสผ่าน
+              คุณจะได้รับลิงค์สำหรับตั้งรหัสผ่านใหม่
             </p>
           </form>
         </div>

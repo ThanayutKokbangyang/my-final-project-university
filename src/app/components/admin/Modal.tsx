@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Icon } from '@iconify/react';
+import React, { useEffect } from "react";
+import { Icon } from "@iconify/react";
 
 interface ModalProps {
   isOpen: boolean;
@@ -11,13 +11,13 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
   useEffect(() => {
     // Close modal when Escape key is pressed
     const handleEsc = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         onClose();
       }
     };
-    window.addEventListener('keydown', handleEsc);
+    window.addEventListener("keydown", handleEsc);
     return () => {
-      window.removeEventListener('keydown', handleEsc);
+      window.removeEventListener("keydown", handleEsc);
     };
   }, [onClose]);
 

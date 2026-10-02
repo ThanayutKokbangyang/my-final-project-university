@@ -1,22 +1,25 @@
-// For app directory: app/api/stripe-session/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, { apiVersion: '2024-09-30.acacia' });
+import { safeJson } from "@/lib/json";
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { getStripe } from "@/lib/stripe";
+import { errorResponse, HttpError, requireUser } from "@/lib/http";
 
 export async function GET(req: NextRequest) {
-    const { searchParams } = new URL(req.url);
-    const sessionId = searchParams.get('sessionId');
-
-    if (!sessionId) {
-        return NextResponse.json({ message: 'Session ID is required' }, { status: 400 });
-    }
-
-    try {
-        const session = await stripe.checkout.sessions.retrieve(sessionId);
-        return NextResponse.json(session);
-    } catch (error) {
-        console.error('Error retrieving session:', error);
-        return NextResponse.json({ message: 'Error retrieving session' }, { status: 500 });
-    }
+  try {
+    const user = await requireUser();
+    const id = req.nextUrl.searchParams.get("sessionId");
+    if (!id) throw new HttpError(400, "Session ID is required");
+    const order = await prisma.order.findFirst({ where: { stripePaymentId: id, userId: user.id } });
+    if (!order) throw new HttpError(404, "Order not found");
+    const session = await getStripe().checkout.sessions.retrieve(id);
+    return safeJson({
+      id: session.id,
+      payment_status: session.payment_status,
+      metadata: { userId: user.id, orderId: String(order.id) },
+    });
+  } catch (error) {
+    return errorResponse(error);
+  }
 }
+
+export const dynamic = "force-dynamic";

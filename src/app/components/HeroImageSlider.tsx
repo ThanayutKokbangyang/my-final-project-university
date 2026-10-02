@@ -1,6 +1,6 @@
-import React from 'react';
-import Slider from 'react-slick'; // Import react-slick
-import { CldImage } from 'next-cloudinary';
+import React from "react";
+import Slider from "react-slick"; // Import react-slick
+import { CldImage } from "next-cloudinary";
 
 // Interface for HeroImage
 interface HeroImage {
@@ -33,13 +33,15 @@ const HeroImageSlider: React.FC<HeroImageSliderProps> = ({ heroImages }) => {
         <Slider {...settings}>
           {heroImages.map((image) => (
             <div key={image.id} className="relative">
-              <div className="relative h-[60vh] md:h-[80vh] lg:h-[100vh] w-full overflow-hidden"> {/* ทำให้ responsive */} 
+              <div className="relative h-[60vh] md:h-[80vh] lg:h-[100vh] w-full overflow-hidden">
+                {" "}
+                {/* ทำให้ responsive */}
                 {/* แสดงภาพที่อัปโหลด */}
                 <CldImage
                   src={image.imageUrl}
                   alt={image.label}
                   fill
-                  style={{ objectFit: 'cover' }} // ใช้ objectFit: 'cover' เพื่อให้ภาพแสดงเต็มขนาด
+                  style={{ objectFit: "cover" }} // ใช้ objectFit: 'cover' เพื่อให้ภาพแสดงเต็มขนาด
                 />
               </div>
 
@@ -50,11 +52,11 @@ const HeroImageSlider: React.FC<HeroImageSliderProps> = ({ heroImages }) => {
                   <p className="text-lg md:text-xl lg:text-2xl text-center">{image.buttonText}</p>
                 </div>
                 <a
-  href={image.buttonLink}
-  className="inline-block text-lg md:text-xl mt-2 bg-white bg-opacity-20 text-white border-4 border-white px-4 py-2 transition-transform duration-300 transform hover:scale-105"
->
-  Buy Now
-</a>
+                  href={image.buttonLink}
+                  className="inline-block text-lg md:text-xl mt-2 bg-white bg-opacity-20 text-white border-4 border-white px-4 py-2 transition-transform duration-300 transform hover:scale-105"
+                >
+                  Buy Now
+                </a>
               </div>
             </div>
           ))}
@@ -62,13 +64,15 @@ const HeroImageSlider: React.FC<HeroImageSliderProps> = ({ heroImages }) => {
       ) : (
         heroImages.map((image) => (
           <div key={image.id} className="relative">
-            <div className="relative h-[60vh] md:h-[80vh] lg:h-[90vh] w-full overflow-hidden shadow-lg"> {/* ทำให้ responsive */}
+            <div className="relative h-[60vh] md:h-[80vh] lg:h-[90vh] w-full overflow-hidden shadow-lg">
+              {" "}
+              {/* ทำให้ responsive */}
               {/* แสดงภาพที่อัปโหลด */}
               <CldImage
                 src={image.imageUrl}
                 alt={image.label}
                 fill
-                style={{ objectFit: 'cover' }} // ใช้ objectFit: 'cover' เพื่อให้ภาพแสดงเต็มขนาด
+                style={{ objectFit: "cover" }} // ใช้ objectFit: 'cover' เพื่อให้ภาพแสดงเต็มขนาด
               />
             </div>
 

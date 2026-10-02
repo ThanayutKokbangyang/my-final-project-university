@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
 import Navbar from "./components/Navbar";
 import HeroImageSlider from "./components/HeroImageSlider";
 import { Advertisement, HeroImage } from "@prisma/client";
@@ -11,8 +11,8 @@ import DiscountCode from "./components/DiscountCode"; // Import the DiscountCode
 import Footer from "./components/Footer";
 
 export default function Home() {
-  const router = useRouter(); 
-  const [heroImages, setHeroImages] = useState<HeroImage[]>([]); 
+  const router = useRouter();
+  const [heroImages, setHeroImages] = useState<HeroImage[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [ads, setAds] = useState<Advertisement[]>([]);
@@ -21,7 +21,7 @@ export default function Home() {
   // Fetch hero images
   const fetchHeroImages = async (): Promise<void> => {
     try {
-      const response = await fetch("/api/hero-images"); 
+      const response = await fetch("/api/hero-images");
       if (!response.ok) {
         throw new Error("Failed to fetch hero images.");
       }
@@ -87,9 +87,7 @@ export default function Home() {
         </div>
       )}
 
-      <span className="text-3xl font-bold text-gray-800 mt-10 block text-center">
-        สินค้าของเรา
-      </span>
+      <span className="text-3xl font-bold text-gray-800 mt-10 block text-center">สินค้าของเรา</span>
 
       {loading ? (
         <div className="flex justify-center items-center mt-10">

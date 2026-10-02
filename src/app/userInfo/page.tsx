@@ -1,19 +1,19 @@
 // pages/UserInfo.tsx
-'use client';
-import toast, { Toaster } from 'react-hot-toast';
-import React, { useEffect, useState } from 'react';
-import Navbar from '../components/Navbar';
-import { useSession } from 'next-auth/react'; 
-import { useRouter } from 'next/navigation'; 
-import Loading from '../components/Loading';
-import SidebarUser from '../components/SidebarUser';
+"use client";
+import toast, { Toaster } from "react-hot-toast";
+import React, { useEffect, useState } from "react";
+import Navbar from "../components/Navbar";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import Loading from "../components/Loading";
+import SidebarUser from "../components/SidebarUser";
 
 // กำหนด interface สำหรับ user และ session
 interface User {
   name?: string | null;
   email?: string | null;
   image?: string | null;
-  role?: 'ADMIN' | 'USER'; // เพิ่ม role เพื่อระบุบทบาท
+  role?: "ADMIN" | "USER"; // เพิ่ม role เพื่อระบุบทบาท
 }
 
 interface Session {
@@ -25,68 +25,68 @@ const UserInfo: React.FC = () => {
   const { data: session, status } = useSession() as { data: Session | null; status: string };
   const router = useRouter();
   const [userInfo, setUserInfo] = useState({
-    id: '', 
-    name: '',
-    createdAt: '',
-    email: '',
-    password: '',
-    provider: '',
+    id: "",
+    name: "",
+    createdAt: "",
+    email: "",
+    password: "",
+    provider: "",
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editField, setEditField] = useState<string | null>(null);
-  const [newFirstName, setNewFirstName] = useState('');
-  const [newLastName, setNewLastName] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
+  const [newFirstName, setNewFirstName] = useState("");
+  const [newLastName, setNewLastName] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const isOAuthProvider = userInfo.provider && userInfo.provider !== 'credentials';
+  const isOAuthProvider = userInfo.provider && userInfo.provider !== "credentials";
 
   const fetchUserInfo = async () => {
     try {
-      const response = await fetch('/api/user');
+      const response = await fetch("/api/user?self=1");
       const data = await response.json();
-      const [firstName, lastName] = data.name.split(' ');
+      const [firstName, lastName] = data.name.split(" ");
       setUserInfo({
         ...data,
-        password: '',
+        password: "",
       });
       setNewFirstName(firstName);
       setNewLastName(lastName);
     } catch (error) {
-      console.error('Error fetching user info:', error);
+      console.error("Error fetching user info:", error);
     }
   };
 
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === "authenticated") {
       fetchUserInfo();
-    } else if (status === 'unauthenticated') {
-      router.push('/signin');
+    } else if (status === "unauthenticated") {
+      router.push("/signin");
     }
   }, [status, router]);
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return <Loading />;
   }
 
   // ตรวจสอบว่าผู้ใช้เป็น admin หรือไม่
-  const isAdmin = session?.user?.role === 'ADMIN';
+  const isAdmin = session?.user?.role === "ADMIN";
 
   if (isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-      <Navbar />
-      <div className="p-6 md:p-10 border border-black text-center shadow-lg w-11/12 md:w-1/2 lg:w-1/3">
-        <h2 className="text-4xl font-bold mb-4">Hello, {session.user?.name}</h2>
-        <button
-          onClick={() => router.push('/admin/dashboard')}
-          className="px-4 py-2 bg-black text-white rounded hover:bg-gray-700 transform transition-transform duration-300 hover:scale-105"
-        >
-          เข้าสู่ dashboard admin
-        </button>
+        <Navbar />
+        <div className="p-6 md:p-10 border border-black text-center shadow-lg w-11/12 md:w-1/2 lg:w-1/3">
+          <h2 className="text-4xl font-bold mb-4">Hello, {session.user?.name}</h2>
+          <button
+            onClick={() => router.push("/admin/dashboard")}
+            className="px-4 py-2 bg-black text-white rounded hover:bg-gray-700 transform transition-transform duration-300 hover:scale-105"
+          >
+            เข้าสู่ dashboard admin
+          </button>
+        </div>
       </div>
-    </div>
     );
   }
 
@@ -94,7 +94,7 @@ const UserInfo: React.FC = () => {
   const handleEdit = (field: string) => {
     setEditField(field);
     setIsModalOpen(true);
-    setErrorMessage('');
+    setErrorMessage("");
   };
 
   const isValidPassword = (password: string) => {
@@ -103,17 +103,19 @@ const UserInfo: React.FC = () => {
   };
 
   const isSequentialPassword = (password: string) => {
-    const sequentialNumbers = /(0123456789|123456789|987654321|01234|12345|23456|34567|45678|56789|67890)/;
-    const sequentialLetters = /(?:abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)/i;
+    const sequentialNumbers =
+      /(0123456789|123456789|987654321|01234|12345|23456|34567|45678|56789|67890)/;
+    const sequentialLetters =
+      /(?:abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)/i;
     return sequentialNumbers.test(password) || sequentialLetters.test(password);
   };
 
   const handleSave = async () => {
     const userIdParam = userInfo.id;
 
-    if (editField === 'name') {
+    if (editField === "name") {
       if (!newFirstName.trim() || !newLastName.trim()) {
-        setErrorMessage('กรุณากรอกชื่อและนามสกุลให้ครบถ้วน');
+        setErrorMessage("กรุณากรอกชื่อและนามสกุลให้ครบถ้วน");
         return;
       }
 
@@ -121,49 +123,49 @@ const UserInfo: React.FC = () => {
       const updatedInfo = { ...userInfo, name: updatedName };
 
       try {
-        const response = await fetch('/api/user', {
-          method: 'PUT',
+        const response = await fetch("/api/user", {
+          method: "PUT",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             name: updatedName,
             userIdParam,
           }),
         });
 
         if (!response.ok) {
-          throw new Error('Failed to update name');
+          throw new Error("Failed to update name");
         }
 
         setUserInfo(updatedInfo);
-        toast.success('เปลี่ยนชื่อสำเร็จ');
+        toast.success("เปลี่ยนชื่อสำเร็จ");
       } catch (error) {
-        setErrorMessage('เกิดข้อผิดพลาดในการอัปเดตชื่อ');
+        setErrorMessage("เกิดข้อผิดพลาดในการอัปเดตชื่อ");
       }
     }
 
-    if (editField === 'password') {
+    if (editField === "password") {
       if (newPassword !== confirmPassword) {
-        setErrorMessage('รหัสผ่านทั้งสองช่องไม่ตรงกัน');
+        setErrorMessage("รหัสผ่านทั้งสองช่องไม่ตรงกัน");
         return;
       }
 
       if (!isValidPassword(newPassword)) {
-        setErrorMessage('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร และต้องมีตัวเลขและตัวอักษรผสมกัน');
+        setErrorMessage("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร และต้องมีตัวเลขและตัวอักษรผสมกัน");
         return;
       }
 
       if (isSequentialPassword(newPassword)) {
-        setErrorMessage('รหัสผ่านไม่ควรมีลำดับตัวเลขหรืออักษรที่คาดเดาได้ เช่น 12345 หรือ abcdef');
+        setErrorMessage("รหัสผ่านไม่ควรมีลำดับตัวเลขหรืออักษรที่คาดเดาได้ เช่น 12345 หรือ abcdef");
         return;
       }
 
       try {
-        const response = await fetch('/api/user', {
-          method: 'PUT',
+        const response = await fetch("/api/user", {
+          method: "PUT",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             password: newPassword,
@@ -172,15 +174,15 @@ const UserInfo: React.FC = () => {
         });
 
         if (!response.ok) {
-          throw new Error('Failed to update password');
+          throw new Error("Failed to update password");
         }
 
-        const updatedInfo = { ...userInfo, password: '' };
+        const updatedInfo = { ...userInfo, password: "" };
         setUserInfo(updatedInfo);
-        toast.success('เปลี่ยนรหัสผ่านสำเร็จ');
+        toast.success("เปลี่ยนรหัสผ่านสำเร็จ");
       } catch (error) {
-        setErrorMessage('เกิดข้อผิดพลาดในการอัปเดตรหัสผ่าน');
-        toast.error('เกิดข้อผิดพลาดในการอัปเดตรหัสผ่าน');
+        setErrorMessage("เกิดข้อผิดพลาดในการอัปเดตรหัสผ่าน");
+        toast.error("เกิดข้อผิดพลาดในการอัปเดตรหัสผ่าน");
       }
     }
 
@@ -194,7 +196,6 @@ const UserInfo: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-4">
         <SidebarUser /> {/* Sidebar component for non-admin */}
-
         <div className="col-span-1 md:col-span-3 p-4 border border-black">
           <h2 className="text-2xl font-bold mb-4">รายละเอียดของฉัน</h2>
           <p className="text-sm text-gray-600 mb-4">
@@ -206,10 +207,7 @@ const UserInfo: React.FC = () => {
             <h3 className="text-xl font-bold mb-2">รายละเอียด</h3>
             <div className="mb-4">
               <span className="font-semibold">ชื่อ:</span> {userInfo.name}{" "}
-              <button
-                onClick={() => handleEdit("name")}
-                className="text-black underline ml-2"
-              >
+              <button onClick={() => handleEdit("name")} className="text-black underline ml-2">
                 แก้ไข
               </button>
             </div>
@@ -299,10 +297,7 @@ const UserInfo: React.FC = () => {
               >
                 ยกเลิก
               </button>
-              <button
-                onClick={handleSave}
-                className="bg-black text-white px-4 py-2 rounded"
-              >
+              <button onClick={handleSave} className="bg-black text-white px-4 py-2 rounded">
                 บันทึก
               </button>
             </div>

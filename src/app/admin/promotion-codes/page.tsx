@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Swal from "sweetalert2";
@@ -225,13 +225,13 @@ const PromotionCodeManagement: React.FC = () => {
             <h1 className="text-2xl font-bold mb-4">Promotion Code Management</h1>
             {/* Navigation Buttons */}
             <div className="flex space-x-4 mb-4">
-              <button 
+              <button
                 onClick={() => setView("CODES")}
                 className={`px-4 py-2 rounded-md ${view === "CODES" ? "bg-black text-white" : "bg-gray-200 text-black"}`}
               >
                 Promotion Codes
               </button>
-              <button 
+              <button
                 onClick={() => setView("USAGE")}
                 className={`px-4 py-2 rounded-md ${view === "USAGE" ? "bg-black text-white" : "bg-gray-200 text-black"}`}
               >
@@ -252,7 +252,11 @@ const PromotionCodeManagement: React.FC = () => {
                   <div className="relative">
                     <label className="block mb-1">Code</label>
                     <div className="flex items-center">
-                      <Icon icon="hugeicons:discount-tag-02" width={24} className="absolute left-2" />
+                      <Icon
+                        icon="hugeicons:discount-tag-02"
+                        width={24}
+                        className="absolute left-2"
+                      />
                       <input
                         type="text"
                         placeholder="Enter Promotion Code"
@@ -363,7 +367,7 @@ const PromotionCodeManagement: React.FC = () => {
                         <th className="px-6 py-3">End Date</th>
                         <th className="px-6 py-3">Description</th>
                         <th className="px-6 py-3">Status</th>
-                        <th className="px-6 py-3">Usage Count</th> 
+                        <th className="px-6 py-3">Usage Count</th>
                         <th className="px-6 py-3">Actions</th>
                       </tr>
                     </thead>
@@ -379,19 +383,32 @@ const PromotionCodeManagement: React.FC = () => {
                           <tr key={promo.id} className="bg-white border-b hover:bg-gray-50">
                             <td className="px-6 py-4">{promo.code}</td>
                             <td className="px-6 py-4">{promo.discountPercentage}%</td>
-                            <td className="px-6 py-4">{new Date(promo.startDate).toLocaleDateString()}</td>
-                            <td className="px-6 py-4">{new Date(promo.endDate).toLocaleDateString()}</td>
                             <td className="px-6 py-4">
-                              <div dangerouslySetInnerHTML={{ __html: promo.description }} className="prose prose-sm" />
+                              {new Date(promo.startDate).toLocaleDateString()}
                             </td>
                             <td className="px-6 py-4">
-                              <div className={`px-4 py-2 text-center ${
-                                promo.status === "ACTIVE" ? "bg-green-100" :
-                                promo.status === "NOT_YET_VALID" ? "bg-yellow-100" : "bg-red-100"} rounded-md`}>
+                              {new Date(promo.endDate).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4">
+                              <div
+                                dangerouslySetInnerHTML={{ __html: promo.description }}
+                                className="prose prose-sm"
+                              />
+                            </td>
+                            <td className="px-6 py-4">
+                              <div
+                                className={`px-4 py-2 text-center ${
+                                  promo.status === "ACTIVE"
+                                    ? "bg-green-100"
+                                    : promo.status === "NOT_YET_VALID"
+                                      ? "bg-yellow-100"
+                                      : "bg-red-100"
+                                } rounded-md`}
+                              >
                                 {promo.status}
                               </div>
                             </td>
-                            <td className="px-6 py-4">{promo.usageCount || 0}</td> 
+                            <td className="px-6 py-4">{promo.usageCount || 0}</td>
                             <td className="flex items-center px-6 py-4">
                               <button
                                 onClick={() => handleEditPromotionCode(promo)}
@@ -418,7 +435,7 @@ const PromotionCodeManagement: React.FC = () => {
             // Promotion Usage View
             <div className="mt-8">
               <h2 className="text-xl font-semibold mb-4">Promotion Usage</h2>
-              
+
               {/* Table for Promotion Usage */}
               <div className="overflow-x-auto shadow-md sm:rounded-lg">
                 <table className="min-w-full text-sm text-left text-gray-500">
@@ -441,7 +458,9 @@ const PromotionCodeManagement: React.FC = () => {
                         <tr key={usage.id} className="bg-white border-b hover:bg-gray-50">
                           <td className="px-6 py-4">{usage.userId}</td>
                           <td className="px-6 py-4">{usage.promotionCode?.code || "N/A"}</td>
-                          <td className="px-6 py-4">{new Date(usage.usedAt).toLocaleDateString()}</td>
+                          <td className="px-6 py-4">
+                            {new Date(usage.usedAt).toLocaleDateString()}
+                          </td>
                         </tr>
                       ))
                     )}
@@ -451,15 +470,17 @@ const PromotionCodeManagement: React.FC = () => {
 
               {/* Pagination Controls */}
               <div className="flex justify-between mt-4">
-                <button 
+                <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
                   className={`px-3 py-1 rounded-md ${currentPage === 1 ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-blue-600 text-white"}`}
                 >
                   Previous
                 </button>
-                <span className="flex items-center">Page {currentPage} of {totalPages}</span>
-                <button 
+                <span className="flex items-center">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
                   className={`px-3 py-1 rounded-md ${currentPage === totalPages ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-blue-600 text-white"}`}

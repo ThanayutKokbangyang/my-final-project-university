@@ -1,12 +1,12 @@
-'use client';
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Loading from '@/app/components/Loading';
-import Navbar from '@/app/components/Navbar';
+"use client";
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Loading from "@/app/components/Loading";
+import Navbar from "@/app/components/Navbar";
 import { Icon } from "@iconify/react";
-import { useSession } from 'next-auth/react';
-import { useFavorite } from '../../context/FavoriteContext';
-import { useCart } from '../../context/CartContext'; // นำเข้า useCart
+import { useSession } from "next-auth/react";
+import { useFavorite } from "../../context/FavoriteContext";
+import { useCart } from "../../context/CartContext"; // นำเข้า useCart
 
 interface Inventory {
   id: number;
@@ -63,11 +63,11 @@ const ProductDetail = () => {
       try {
         const productRes = await fetch(`/api/products/${id}`);
         if (!productRes.ok) {
-          throw new Error('Failed to fetch product data');
+          throw new Error("Failed to fetch product data");
         }
         const productData = await productRes.json();
 
-        const imagesArray: string[] = productData.image.split(',');
+        const imagesArray: string[] = productData.image.split(",");
         setProduct({
           ...productData,
           image: imagesArray,
@@ -77,7 +77,7 @@ const ProductDetail = () => {
 
         const inventoryRes = await fetch(`/api/inventories?productId=${id}`);
         if (!inventoryRes.ok) {
-          throw new Error('Failed to fetch inventory data');
+          throw new Error("Failed to fetch inventory data");
         }
         const inventoryData = await inventoryRes.json();
         setInventories(inventoryData);
@@ -87,7 +87,7 @@ const ProductDetail = () => {
         }
 
         // Check favorite status
-        if (status === 'authenticated') {
+        if (status === "authenticated") {
           const userId = (session?.user as { id: string }).id;
           const response = await fetch(`/api/favorites/check?productId=${id}&userId=${userId}`);
           const { isFavorite } = await response.json();
@@ -96,8 +96,8 @@ const ProductDetail = () => {
 
         setLoading(false);
       } catch (error) {
-        setError('Error fetching product or inventory data');
-        console.error('Error fetching data:', error);
+        setError("Error fetching product or inventory data");
+        console.error("Error fetching data:", error);
         setLoading(false);
       }
     };
@@ -118,54 +118,54 @@ const ProductDetail = () => {
     setSelectedImage(image);
   };
 
-// Handle adding product to cart
-const handleAddToCart = async () => {
-  if (status === 'unauthenticated') {
-    router.push('/signin');
-    return;
-  }
-
-  try {
-    const response = await fetch('/api/cart', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        productId: product?.id,
-        inventoryId: selectedInventory?.id, // ส่ง inventoryId เพื่อระบุไซส์และสต็อก
-      }),
-    });
-
-    const result = await response.json();
-    if (response.ok) {
-      setMessage('เพิ่มสินค้าในตะกร้าสำเร็จ');
-
-      if (result.newItem) {
-        increaseCartCount(); // เพิ่มจำนวนสินค้าในตะกร้าเฉพาะเมื่อเป็นสินค้าใหม่
-      }
-    } else {
-      setMessage(result.message || 'เกิดข้อผิดพลาด');
+  // Handle adding product to cart
+  const handleAddToCart = async () => {
+    if (status === "unauthenticated") {
+      router.push("/signin");
+      return;
     }
-  } catch (error) {
-    console.error('Error adding to cart:', error);
-    setMessage('เกิดข้อผิดพลาดขณะเพิ่มสินค้าในตะกร้า');
-  }
-};
+
+    try {
+      const response = await fetch("/api/cart", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          productId: product?.id,
+          inventoryId: selectedInventory?.id, // ส่ง inventoryId เพื่อระบุไซส์และสต็อก
+        }),
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        setMessage("เพิ่มสินค้าในตะกร้าสำเร็จ");
+
+        if (result.newItem) {
+          increaseCartCount(); // เพิ่มจำนวนสินค้าในตะกร้าเฉพาะเมื่อเป็นสินค้าใหม่
+        }
+      } else {
+        setMessage(result.message || "เกิดข้อผิดพลาด");
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      setMessage("เกิดข้อผิดพลาดขณะเพิ่มสินค้าในตะกร้า");
+    }
+  };
 
   // Handle favorite click
   const handleFavoriteClick = async () => {
-    if (status === 'unauthenticated') {
-      window.location.href = '/signin';
+    if (status === "unauthenticated") {
+      window.location.href = "/signin";
     } else {
       try {
         const userId = (session?.user as { id: string }).id;
 
         if (isFavorited) {
-          const response = await fetch('/api/favorites', {
-            method: 'DELETE',
+          const response = await fetch("/api/favorites", {
+            method: "DELETE",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
               productId: product?.id,
@@ -174,16 +174,16 @@ const handleAddToCart = async () => {
           });
 
           if (!response.ok) {
-            throw new Error('Failed to remove from favorites');
+            throw new Error("Failed to remove from favorites");
           }
 
           setIsFavorited(false);
           decreaseFavoriteCount();
         } else {
-          const response = await fetch('/api/favorites', {
-            method: 'POST',
+          const response = await fetch("/api/favorites", {
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
               productId: product?.id,
@@ -192,14 +192,14 @@ const handleAddToCart = async () => {
           });
 
           if (!response.ok) {
-            throw new Error('Failed to add to favorites');
+            throw new Error("Failed to add to favorites");
           }
 
           setIsFavorited(true);
           increaseFavoriteCount();
         }
       } catch (error) {
-        console.error('Error toggling favorite:', error);
+        console.error("Error toggling favorite:", error);
       }
     }
   };
@@ -217,7 +217,8 @@ const handleAddToCart = async () => {
   const isOutOfStock = selectedInventory.stock === 0;
 
   // Convert gender to Thai language (except for unisex)
-  const genderDisplay = product.gender === 'unisex' ? 'Unisex' : product.gender === 'male' ? 'ชาย' : 'หญิง';
+  const genderDisplay =
+    product.gender === "unisex" ? "Unisex" : product.gender === "male" ? "ชาย" : "หญิง";
 
   return (
     <div>
@@ -238,7 +239,11 @@ const handleAddToCart = async () => {
         {/* Product Image and Thumbnails */}
         <div>
           {/* Main Image */}
-          <img src={selectedImage || '/path/to/placeholder.jpg'} alt={product.title} className="w-full h-auto" />
+          <img
+            src={selectedImage || "/path/to/placeholder.jpg"}
+            alt={product.title}
+            className="w-full h-auto"
+          />
           <div className="flex space-x-2 mt-4">
             {/* Image Thumbnails */}
             {product.image.map((img: string, index: number) => (
@@ -246,7 +251,7 @@ const handleAddToCart = async () => {
                 key={index}
                 src={img}
                 alt={`Thumbnail ${index}`}
-                className={`w-20 h-20 border rounded hover:border-black cursor-pointer ${selectedImage === img ? 'border-black' : ''}`}
+                className={`w-20 h-20 border rounded hover:border-black cursor-pointer ${selectedImage === img ? "border-black" : ""}`}
                 onClick={() => handleImageChange(img)}
               />
             ))}
@@ -266,14 +271,12 @@ const handleAddToCart = async () => {
             </div>
             {/* Add Favorite Heart Icon */}
             <button className="text-red-500" onClick={handleFavoriteClick}>
-              <Icon
-                icon={isFavorited ? "mdi:heart" : "mdi:heart-outline"}
-                width={30}
-                height={30}
-              />
+              <Icon icon={isFavorited ? "mdi:heart" : "mdi:heart-outline"} width={30} height={30} />
             </button>
           </div>
-          <p className="text-sm text-gray-500 mb-4">{product.fragranceFamily?.name || 'No fragrance family provided'}</p>
+          <p className="text-sm text-gray-500 mb-4">
+            {product.fragranceFamily?.name || "No fragrance family provided"}
+          </p>
           <p className="text-3xl font-semibold text-black mb-4">฿{selectedInventory.price}</p>
 
           {/* Size Selection */}
@@ -293,13 +296,13 @@ const handleAddToCart = async () => {
           </div>
 
           {/* Stock Information */}
-          <p className={`text-sm mb-6 ${isOutOfStock ? 'text-red-500' : ''}`}>
+          <p className={`text-sm mb-6 ${isOutOfStock ? "text-red-500" : ""}`}>
             {isOutOfStock ? "สินค้าหมด" : `คงเหลือ: ${selectedInventory.stock}`}
           </p>
 
           {/* Add to Cart Button */}
           <button
-            className={`bg-black text-white py-3 px-6 w-full mb-6 hover:bg-gray-800 ${isOutOfStock ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`bg-black text-white py-3 px-6 w-full mb-6 hover:bg-gray-800 ${isOutOfStock ? "opacity-50 cursor-not-allowed" : ""}`}
             onClick={handleAddToCart}
             disabled={isOutOfStock}
           >
@@ -318,7 +321,10 @@ const handleAddToCart = async () => {
                   height={20}
                 />
               </summary>
-              <p className="mt-2 text-gray-600 transition-opacity duration-300 ease-in-out opacity-0 group-open:opacity-100" dangerouslySetInnerHTML={{ __html: product.description }} />
+              <p
+                className="mt-2 text-gray-600 transition-opacity duration-300 ease-in-out opacity-0 group-open:opacity-100"
+                dangerouslySetInnerHTML={{ __html: product.description }}
+              />
             </details>
 
             {/* How To Use */}
@@ -332,7 +338,10 @@ const handleAddToCart = async () => {
                   height={20}
                 />
               </summary>
-              <p className="mt-2 text-gray-600 transition-opacity duration-300 ease-in-out opacity-0 group-open:opacity-100" dangerouslySetInnerHTML={{ __html: product.howToUse }} />
+              <p
+                className="mt-2 text-gray-600 transition-opacity duration-300 ease-in-out opacity-0 group-open:opacity-100"
+                dangerouslySetInnerHTML={{ __html: product.howToUse }}
+              />
             </details>
           </div>
 

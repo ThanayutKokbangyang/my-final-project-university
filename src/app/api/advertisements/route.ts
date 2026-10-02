@@ -1,17 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { isAdmin } from '../../util/isAdmin'; // ตรวจสอบสิทธิ์ Admin
+import { safeJson } from "@/lib/json";
+import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 
-const prisma = new PrismaClient();
+import { isAdmin } from "../../util/isAdmin"; // ตรวจสอบสิทธิ์ Admin
 
 // GET: ดึงข้อมูล Advertisement ทั้งหมด
 export const GET = async (req: NextRequest) => {
   try {
     const ads = await prisma.advertisement.findMany();
-    return NextResponse.json(ads, { status: 200 });
+    return safeJson(ads, { status: 200 });
   } catch (error) {
-    console.error('Failed to fetch advertisements:', error);
-    return NextResponse.json({ error: 'Failed to fetch advertisements.' }, { status: 500 });
+    console.error("Failed to fetch advertisements:", error);
+    return safeJson({ error: "Failed to fetch advertisements." }, { status: 500 });
   }
 };
 
@@ -19,23 +19,23 @@ export const GET = async (req: NextRequest) => {
 export const POST = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { description } = await req.json();
     if (!description) {
-      return NextResponse.json({ error: 'Missing required fields: description.' }, { status: 400 });
+      return safeJson({ error: "Missing required fields: description." }, { status: 400 });
     }
 
     const newAd = await prisma.advertisement.create({
       data: { description },
     });
 
-    return NextResponse.json(newAd, { status: 201 });
+    return safeJson(newAd, { status: 201 });
   } catch (error) {
-    console.error('Failed to create advertisement:', error);
-    return NextResponse.json({ error: 'Failed to create advertisement.' }, { status: 500 });
+    console.error("Failed to create advertisement:", error);
+    return safeJson({ error: "Failed to create advertisement." }, { status: 500 });
   }
 };
 
@@ -43,13 +43,13 @@ export const POST = async (req: NextRequest) => {
 export const PUT = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
-    const { id , description } = await req.json();
+    const { id, description } = await req.json();
     if (!id || !description) {
-      return NextResponse.json({ error: 'Missing required fields: id , or description.' }, { status: 400 });
+      return safeJson({ error: "Missing required fields: id , or description." }, { status: 400 });
     }
 
     const updatedAd = await prisma.advertisement.update({
@@ -57,10 +57,10 @@ export const PUT = async (req: NextRequest) => {
       data: { description },
     });
 
-    return NextResponse.json(updatedAd, { status: 200 });
+    return safeJson(updatedAd, { status: 200 });
   } catch (error) {
-    console.error('Failed to update advertisement:', error);
-    return NextResponse.json({ error: 'Failed to update advertisement.' }, { status: 500 });
+    console.error("Failed to update advertisement:", error);
+    return safeJson({ error: "Failed to update advertisement." }, { status: 500 });
   }
 };
 
@@ -68,22 +68,24 @@ export const PUT = async (req: NextRequest) => {
 export const DELETE = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { id } = await req.json();
     if (!id) {
-      return NextResponse.json({ error: 'Missing required field: id.' }, { status: 400 });
+      return safeJson({ error: "Missing required field: id." }, { status: 400 });
     }
 
     const deletedAd = await prisma.advertisement.delete({
       where: { id },
     });
 
-    return NextResponse.json(deletedAd, { status: 200 });
+    return safeJson(deletedAd, { status: 200 });
   } catch (error) {
-    console.error('Failed to delete advertisement:', error);
-    return NextResponse.json({ error: 'Failed to delete advertisement.' }, { status: 500 });
+    console.error("Failed to delete advertisement:", error);
+    return safeJson({ error: "Failed to delete advertisement." }, { status: 500 });
   }
 };
+
+export const dynamic = "force-dynamic";

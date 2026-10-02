@@ -1,8 +1,8 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import 'slick-carousel/slick/slick.css';
-@import 'slick-carousel/slick/slick-theme.css';
+@import "slick-carousel/slick/slick.css";
+@import "slick-carousel/slick/slick-theme.css";
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -27,7 +27,7 @@ body {
   }
 }
 
-#show-password:checked ~ .check-1{
+#show-password:checked ~ .check-1 {
   @apply text-opacity-100;
 }
 
@@ -38,7 +38,6 @@ body {
   justify-content: center;
   align-items: center;
   transform: translateY(-50px);
-
 }
 
 .dot {
@@ -91,7 +90,7 @@ body {
 }
 
 .custom-checkbox:checked::before {
-  content: '';
+  content: "";
   --svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m4.5 12.75l6 6l9-13.5'/%3E%3C/svg%3E");
   background-color: currentColor;
   -webkit-mask-image: var(--svg);
@@ -104,7 +103,7 @@ body {
   top: 50%;
   left: 50%;
   /* เพิ่มขนาดไอคอนตรงนี้ */
-  width: 15px;  /* ปรับขนาดตามที่ต้องการ */
+  width: 15px; /* ปรับขนาดตามที่ต้องการ */
   height: 15px; /* ปรับขนาดตามที่ต้องการ */
   background-color: white;
   transform: translate(-50%, -50%);

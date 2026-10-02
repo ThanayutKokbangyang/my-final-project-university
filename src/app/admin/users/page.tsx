@@ -62,8 +62,7 @@ const UserManagement: React.FC = () => {
 
     const usersWithProviders = data.map((user: User) => ({
       ...user,
-      provider:
-        user.accounts.length > 0 ? user.accounts[0].provider : "credentials",
+      provider: user.accounts.length > 0 ? user.accounts[0].provider : "credentials",
     }));
     setUsers(usersWithProviders);
   };
@@ -191,8 +190,7 @@ const UserManagement: React.FC = () => {
   const filteredUsers = users.filter(
     (user) =>
       (viewMode === "USERS" ? user.role === "USER" : user.role === "ADMIN") &&
-      (user.id.includes(searchTerm) ||
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()))
+      (user.id.includes(searchTerm) || user.name.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
   // Pagination logic
@@ -225,12 +223,7 @@ const UserManagement: React.FC = () => {
               onClick={openModal}
               className="flex items-center px-4 py-2 text-white bg-black hover:bg-gray-800 rounded-md shadow-md transition-all duration-300"
             >
-              <Icon
-                icon="icons8:plus"
-                width={24}
-                height={24}
-                className="mr-2"
-              />
+              <Icon icon="icons8:plus" width={24} height={24} className="mr-2" />
               Add User
             </button>
           </div>
@@ -263,12 +256,7 @@ const UserManagement: React.FC = () => {
                   viewMode === "USERS" ? "bg-black text-white" : "bg-gray-200"
                 }`}
               >
-                <Icon
-                  icon="mdi:account"
-                  width={24}
-                  height={24}
-                  className="mr-2"
-                />
+                <Icon icon="mdi:account" width={24} height={24} className="mr-2" />
                 Users
               </button>
               <button
@@ -277,12 +265,7 @@ const UserManagement: React.FC = () => {
                   viewMode === "ADMINS" ? "bg-black text-white" : "bg-gray-200"
                 }`}
               >
-                <Icon
-                  icon="mdi:shield-account"
-                  width={24}
-                  height={24}
-                  className="mr-2"
-                />
+                <Icon icon="mdi:shield-account" width={24} height={24} className="mr-2" />
                 Admins
               </button>
             </div>
@@ -340,11 +323,7 @@ const UserManagement: React.FC = () => {
                                 }}
                                 className="p-2 text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition-colors"
                               >
-                                <Icon
-                                  icon="mdi:trash-can"
-                                  width={24}
-                                  height={24}
-                                />
+                                <Icon icon="mdi:trash-can" width={24} height={24} />
                               </button>
                             )}
                           </td>
@@ -405,10 +384,7 @@ const UserManagement: React.FC = () => {
           {/* Modal for Adding/Editing User */}
           {isModalOpen && (
             <div className="fixed inset-0 flex items-center justify-center z-50">
-              <div
-                className="absolute inset-0 bg-black opacity-50"
-                onClick={closeModal}
-              ></div>
+              <div className="absolute inset-0 bg-black opacity-50" onClick={closeModal}></div>
               <div className="bg-white p-6 rounded-lg shadow-lg z-10 w-11/12 md:w-1/3 lg:w-1/4">
                 <h2 className="text-xl font-semibold mb-4">
                   {isEditMode ? "Edit User" : "Add New User"}

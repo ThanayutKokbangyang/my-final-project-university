@@ -1,19 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { isAdmin } from '../../util/isAdmin'; // นำเข้า isAdmin จากไฟล์ที่แยกไว้ (ยังคงไว้สำหรับ POST, PUT, DELETE)
+import { errorResponse, positiveInt } from "@/lib/http";
+import { safeJson } from "@/lib/json";
+import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 
-const prisma = new PrismaClient();
-
+import { isAdmin } from "../../util/isAdmin"; // นำเข้า isAdmin จากไฟล์ที่แยกไว้ (ยังคงไว้สำหรับ POST, PUT, DELETE)
 
 // GET: ดึงข้อมูล Formula ทั้งหมด หรือค้นหาตามชื่อ (ทุกคนสามารถเข้าถึงได้)
 export const GET = async (req: NextRequest) => {
   try {
     // ดึง query parameter จาก URL
     const { searchParams } = new URL(req.url);
-    const nameQuery = searchParams.get('name'); // ดึงค่า name จาก query
+    const nameQuery = searchParams.get("name"); // ดึงค่า name จาก query
 
     let formulas;
-    
 
     // ตรวจสอบว่า query parameter 'name' มีการส่งค่ามาหรือไม่
     if (nameQuery) {
@@ -36,11 +35,11 @@ export const GET = async (req: NextRequest) => {
         },
       });
     }
-    
-    return NextResponse.json(formulas, { status: 200 });
+
+    return safeJson(formulas, { status: 200 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Failed to fetch formulas.' }, { status: 500 });
+    return errorResponse(error);
   }
 };
 
@@ -48,14 +47,14 @@ export const GET = async (req: NextRequest) => {
 export const POST = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { name } = await req.json();
 
-    if (!name) {
-      return NextResponse.json({ error: 'Missing required field: name.' }, { status: 400 });
+    if (typeof name !== "string" || !name.trim() || name.length > 100) {
+      return safeJson({ error: "Missing required field: name." }, { status: 400 });
     }
 
     const newFormula = await prisma.formula.create({
@@ -64,10 +63,10 @@ export const POST = async (req: NextRequest) => {
       },
     });
 
-    return NextResponse.json(newFormula, { status: 201 });
+    return safeJson(newFormula, { status: 201 });
   } catch (error) {
-    console.error('Failed to create formula:', error);
-    return NextResponse.json({ error: 'Failed to create formula.' }, { status: 500 });
+    console.error("Failed to create formula:", error);
+    return errorResponse(error);
   }
 };
 
@@ -75,14 +74,14 @@ export const POST = async (req: NextRequest) => {
 export const PUT = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { id, name } = await req.json();
 
-    if (!id || !name) {
-      return NextResponse.json({ error: 'Missing required fields: id or name.' }, { status: 400 });
+    if (!positiveInt(id) || typeof name !== "string" || !name.trim() || name.length > 100) {
+      return safeJson({ error: "Missing required fields: id or name." }, { status: 400 });
     }
 
     const updatedFormula = await prisma.formula.update({
@@ -91,10 +90,10 @@ export const PUT = async (req: NextRequest) => {
         name,
       },
     });
-    return NextResponse.json(updatedFormula, { status: 200 });
+    return safeJson(updatedFormula, { status: 200 });
   } catch (error) {
-    console.error('Failed to update formula:', error);
-    return NextResponse.json({ error: 'Failed to update formula.' }, { status: 500 });
+    console.error("Failed to update formula:", error);
+    return errorResponse(error);
   }
 };
 
@@ -102,22 +101,24 @@ export const PUT = async (req: NextRequest) => {
 export const DELETE = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { id } = await req.json();
 
-    if (!id) {
-      return NextResponse.json({ error: 'Missing required field: id.' }, { status: 400 });
+    if (!positiveInt(id)) {
+      return safeJson({ error: "Missing required field: id." }, { status: 400 });
     }
 
     const deletedFormula = await prisma.formula.delete({
       where: { id },
     });
-    return NextResponse.json(deletedFormula, { status: 200 });
+    return safeJson(deletedFormula, { status: 200 });
   } catch (error) {
-    console.error('Failed to delete formula:', error);
-    return NextResponse.json({ error: 'Failed to delete formula.' }, { status: 500 });
+    console.error("Failed to delete formula:", error);
+    return errorResponse(error);
   }
 };
+
+export const dynamic = "force-dynamic";

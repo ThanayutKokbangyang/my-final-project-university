@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { isAdmin } from '../../util/isAdmin';
+import { errorResponse, positiveInt } from "@/lib/http";
+import { safeJson } from "@/lib/json";
+import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 
-const prisma = new PrismaClient();
+import { isAdmin } from "../../util/isAdmin";
 
 // GET: ดึงข้อมูล ProductType ทั้งหมด หรือค้นหาตามชื่อ (ทุกคนสามารถเข้าถึงได้)
 export const GET = async (req: NextRequest) => {
   try {
     const { searchParams } = new URL(req.url);
-    const nameQuery = searchParams.get('name');
+    const nameQuery = searchParams.get("name");
 
     let productTypes;
 
@@ -31,10 +32,10 @@ export const GET = async (req: NextRequest) => {
       });
     }
 
-    return NextResponse.json(productTypes, { status: 200 });
+    return safeJson(productTypes, { status: 200 });
   } catch (error) {
-    console.error('Failed to fetch product types:', error);
-    return NextResponse.json({ error: 'Failed to fetch product types.' }, { status: 500 });
+    console.error("Failed to fetch product types:", error);
+    return errorResponse(error);
   }
 };
 
@@ -42,14 +43,14 @@ export const GET = async (req: NextRequest) => {
 export const POST = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { name } = await req.json();
 
-    if (!name) {
-      return NextResponse.json({ error: 'Missing required field: name.' }, { status: 400 });
+    if (typeof name !== "string" || !name.trim() || name.length > 100) {
+      return safeJson({ error: "Missing required field: name." }, { status: 400 });
     }
 
     const newProductType = await prisma.productType.create({
@@ -58,10 +59,10 @@ export const POST = async (req: NextRequest) => {
       },
     });
 
-    return NextResponse.json(newProductType, { status: 201 });
+    return safeJson(newProductType, { status: 201 });
   } catch (error) {
-    console.error('Failed to create product type:', error);
-    return NextResponse.json({ error: 'Failed to create product type.' }, { status: 500 });
+    console.error("Failed to create product type:", error);
+    return errorResponse(error);
   }
 };
 
@@ -69,14 +70,14 @@ export const POST = async (req: NextRequest) => {
 export const PUT = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { id, name } = await req.json();
 
-    if (!id || !name) {
-      return NextResponse.json({ error: 'Missing required fields: id or name.' }, { status: 400 });
+    if (!positiveInt(id) || typeof name !== "string" || !name.trim() || name.length > 100) {
+      return safeJson({ error: "Missing required fields: id or name." }, { status: 400 });
     }
 
     const updatedProductType = await prisma.productType.update({
@@ -85,10 +86,10 @@ export const PUT = async (req: NextRequest) => {
         name,
       },
     });
-    return NextResponse.json(updatedProductType, { status: 200 });
+    return safeJson(updatedProductType, { status: 200 });
   } catch (error) {
-    console.error('Failed to update product type:', error);
-    return NextResponse.json({ error: 'Failed to update product type.' }, { status: 500 });
+    console.error("Failed to update product type:", error);
+    return errorResponse(error);
   }
 };
 
@@ -96,22 +97,24 @@ export const PUT = async (req: NextRequest) => {
 export const DELETE = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { id } = await req.json();
 
-    if (!id) {
-      return NextResponse.json({ error: 'Missing required field: id.' }, { status: 400 });
+    if (!positiveInt(id)) {
+      return safeJson({ error: "Missing required field: id." }, { status: 400 });
     }
 
     const deletedProductType = await prisma.productType.delete({
       where: { id },
     });
-    return NextResponse.json(deletedProductType, { status: 200 });
+    return safeJson(deletedProductType, { status: 200 });
   } catch (error) {
-    console.error('Failed to delete product type:', error);
-    return NextResponse.json({ error: 'Failed to delete product type.' }, { status: 500 });
+    console.error("Failed to delete product type:", error);
+    return errorResponse(error);
   }
 };
+
+export const dynamic = "force-dynamic";

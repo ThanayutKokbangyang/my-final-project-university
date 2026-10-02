@@ -54,11 +54,11 @@ export default function Dashboard() {
   }
 
   const revenueData = {
-    labels: dashboardData.dailyRevenue.map(item => item.date),
+    labels: dashboardData.dailyRevenue.map((item) => item.date),
     datasets: [
       {
         label: "Revenue",
-        data: dashboardData.dailyRevenue.map(item => item.revenue),
+        data: dashboardData.dailyRevenue.map((item) => item.revenue),
         borderColor: "#a8a8f0",
         backgroundColor: "#d4d4fa",
         tension: 0.4,
@@ -67,11 +67,11 @@ export default function Dashboard() {
   };
 
   const ordersData = {
-    labels: dashboardData.dailyOrders.map(item => item.date),
+    labels: dashboardData.dailyOrders.map((item) => item.date),
     datasets: [
       {
         label: "Orders",
-        data: dashboardData.dailyOrders.map(item => item.orders),
+        data: dashboardData.dailyOrders.map((item) => item.orders),
         backgroundColor: "#a8a8f0",
       },
     ],
@@ -103,11 +103,15 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white p-3 md:p-4 rounded shadow transition-shadow duration-300 hover:shadow-lg">
-            <h2 className="text-center font-semibold mb-4 text-base md:text-lg">Revenue Line Chart</h2>
+            <h2 className="text-center font-semibold mb-4 text-base md:text-lg">
+              Revenue Line Chart
+            </h2>
             <Line data={revenueData} />
           </div>
           <div className="bg-white p-3 md:p-4 rounded shadow transition-shadow duration-300 hover:shadow-lg">
-            <h2 className="text-center font-semibold mb-4 text-base md:text-lg">Total Order Bar Chart</h2>
+            <h2 className="text-center font-semibold mb-4 text-base md:text-lg">
+              Total Order Bar Chart
+            </h2>
             <Bar data={ordersData} />
           </div>
         </div>

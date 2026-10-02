@@ -39,7 +39,7 @@ const Cart: React.FC = () => {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [discount, setDiscount] = useState<number>(0);
+  const [discountPercentage, setDiscountPercentage] = useState(0);
   const [promotionCode, setPromotionCode] = useState<string>("");
   const [promotionError, setPromotionError] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
@@ -48,30 +48,17 @@ const Cart: React.FC = () => {
   const [isAddressAlertOpen, setIsAddressAlertOpen] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 5;
-  const [userId, setUserId] = useState<string | undefined>(undefined); // New state for userId
+  const userId = session?.user?.id;
+  const [checkingOut, setCheckingOut] = useState(false);
 
   useEffect(() => {
     if (status === "authenticated") {
-      fetchUserId();
       fetchCartItems();
       fetchAddresses();
     } else if (status === "unauthenticated") {
       router.push("/signin");
     }
   }, [status, router]);
-
-  const fetchUserId = async () => {
-    try {
-      const response = await fetch("/api/user");
-      if (!response.ok) throw new Error("ไม่สามารถดึงข้อมูลผู้ใช้ได้");
-
-      const data = await response.json();
-      setUserId(data.id);
-    } catch (error) {
-      console.error("Failed to fetch user ID:", error);
-      setError("ไม่พบรหัสผู้ใช้");
-    }
-  };
 
   const fetchCartItems = async () => {
     try {
@@ -109,9 +96,7 @@ const Cart: React.FC = () => {
       setAddresses(data);
 
       const defaultAddress = data.find((address: Address) => address.isDefault);
-      if (defaultAddress) {
-        setSelectedAddress(defaultAddress);
-      }
+      setSelectedAddress(defaultAddress ?? data[0] ?? null);
     } catch (error) {
       console.error("Error fetching addresses:", error);
       setError("Unable to fetch addresses");
@@ -184,28 +169,22 @@ const Cart: React.FC = () => {
 
       if (usageData.used) {
         setPromotionError("โค้ดส่วนลดนี้ถูกใช้ไปแล้ว");
-        setDiscount(0);
+        setDiscountPercentage(0);
         return;
       }
 
-      const discountAmount =
-        cartItems
-          .filter((item) => selectedItems.includes(item.id))
-          .reduce((total, item) => total + item.price * item.quantity, 0) *
-        (validateData.discountPercentage / 100);
-
-      setDiscount(discountAmount);
+      setDiscountPercentage(Number(validateData.discountPercentage));
       setPromotionError(null);
     } catch (error) {
       console.error("Error applying promotion code:", error);
       setPromotionError("โค้ดผิดหรือหมดอายุแล้ว");
-      setDiscount(0);
+      setDiscountPercentage(0);
     }
   };
 
   const toggleSelectItem = (id: number) => {
     setSelectedItems((prev) =>
-      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id],
     );
   };
 
@@ -223,9 +202,16 @@ const Cart: React.FC = () => {
   const totalAmount = cartItems
     .filter((item) => selectedItems.includes(item.id))
     .reduce((total, item) => total + item.price * item.quantity, 0);
-  const uniqueItemsInCart = new Set(
-    cartItems.map((item) => `${item.productId}-${item.size}`)
-  ).size;
+  const amountAfterDiscount =
+    cartItems
+      .filter((item) => selectedItems.includes(item.id))
+      .reduce(
+        (total, item) =>
+          total + Math.round(item.price * 100 * (1 - discountPercentage / 100)) * item.quantity,
+        0,
+      ) / 100;
+  const discount = totalAmount - amountAfterDiscount;
+  const uniqueItemsInCart = new Set(cartItems.map((item) => `${item.productId}-${item.size}`)).size;
   const totalSelectedItems = selectedItems.length;
 
   const handleCheckout = () => {
@@ -241,6 +227,8 @@ const Cart: React.FC = () => {
   };
 
   const confirmCheckout = async () => {
+    if (checkingOut) return;
+    setCheckingOut(true);
     try {
       if (!userId) {
         alert("ไม่พบรหัสผู้ใช้");
@@ -251,18 +239,13 @@ const Cart: React.FC = () => {
         return;
       }
 
-      const amountToPay = (totalAmount - discount).toFixed(2);
-
       const response = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          cartItems,
           addressId: selectedAddress.id,
           selectedItems,
-          userId,
-          amountToPay,
-          promotionCode,
+          promotionCode: discountPercentage > 0 ? promotionCode : "",
         }),
       });
 
@@ -275,6 +258,7 @@ const Cart: React.FC = () => {
       setError("ไม่สามารถดำเนินการสั่งซื้อได้");
     } finally {
       setIsConfirmModalOpen(false);
+      setCheckingOut(false);
     }
   };
 
@@ -285,7 +269,7 @@ const Cart: React.FC = () => {
   const totalPages = Math.ceil(addresses.length / itemsPerPage);
   const currentAddresses = addresses.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   const handleNextPage = () => {
@@ -338,9 +322,7 @@ const Cart: React.FC = () => {
                       className="w-20 h-20 object-cover mr-4 mb-4 md:mb-0"
                     />
                     <div className="flex-1">
-                      <h2 className="font-bold text-base md:text-lg">
-                        {item.title}
-                      </h2>
+                      <h2 className="font-bold text-base md:text-lg">{item.title}</h2>
                       <p className="text-xs md:text-sm lg:text-base text-gray-500">
                         รหัสสินค้า: {item.productId}
                       </p>
@@ -354,31 +336,19 @@ const Cart: React.FC = () => {
                     <div className="flex items-center border rounded">
                       <button
                         onClick={() =>
-                          updateQuantity(
-                            item.inventoryId,
-                            item.quantity - 1,
-                            item.stock
-                          )
+                          updateQuantity(item.inventoryId, item.quantity - 1, item.stock)
                         }
                         className="px-2"
                       >
                         -
                       </button>
-                      <span className="px-4 text-sm md:text-base">
-                        {item.quantity}
-                      </span>
+                      <span className="px-4 text-sm md:text-base">{item.quantity}</span>
                       <button
                         onClick={() =>
-                          updateQuantity(
-                            item.inventoryId,
-                            item.quantity + 1,
-                            item.stock
-                          )
+                          updateQuantity(item.inventoryId, item.quantity + 1, item.stock)
                         }
                         className={`px-2 ${
-                          item.quantity >= item.stock
-                            ? "opacity-50 cursor-not-allowed"
-                            : ""
+                          item.quantity >= item.stock ? "opacity-50 cursor-not-allowed" : ""
                         }`}
                         disabled={item.quantity >= item.stock}
                       >
@@ -386,9 +356,7 @@ const Cart: React.FC = () => {
                       </button>
                     </div>
                     {item.quantity >= item.stock && (
-                      <span className="text-xs md:text-sm text-red-500 ml-2">
-                        จำนวนสูงสุดแล้ว
-                      </span>
+                      <span className="text-xs md:text-sm text-red-500 ml-2">จำนวนสูงสุดแล้ว</span>
                     )}
                     <button
                       className="bg-gray-300 p-2 rounded ml-4"
@@ -417,16 +385,10 @@ const Cart: React.FC = () => {
                 ) : (
                   <p>ไม่ได้เลือกที่อยู่</p>
                 )}
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="mt-2 text-black underline"
-                >
+                <button onClick={() => setIsModalOpen(true)} className="mt-2 text-black underline">
                   ดูเพิ่มเติม
                 </button>
-                <Link
-                  href="/manage-addresses"
-                  className="mt-2 ml-2 text-black underline"
-                >
+                <Link href="/manage-addresses" className="mt-2 ml-2 text-black underline">
                   จัดการที่อยู่
                 </Link>
               </div>
@@ -437,10 +399,7 @@ const Cart: React.FC = () => {
                   <div className="bg-white p-4 rounded-lg w-11/12 md:w-1/2">
                     <h2 className="text-lg font-bold mb-2">เลือกที่อยู่</h2>
                     {currentAddresses.map((address) => (
-                      <div
-                        key={address.id}
-                        className="flex items-center border-b py-2"
-                      >
+                      <div key={address.id} className="flex items-center border-b py-2">
                         <input
                           type="radio"
                           name="address"
@@ -451,9 +410,8 @@ const Cart: React.FC = () => {
                           <p>{address.recipient}</p>
                           <p>{address.phoneNumber}</p>
                           <p>
-                            {address.address}, {address.district},{" "}
-                            {address.province}, {address.zipCode},{" "}
-                            {address.country}
+                            {address.address}, {address.district}, {address.province},{" "}
+                            {address.zipCode}, {address.country}
                           </p>
                         </div>
                       </div>
@@ -462,9 +420,7 @@ const Cart: React.FC = () => {
                       <button
                         onClick={handlePreviousPage}
                         className={`py-2 px-4 rounded ${
-                          currentPage === 1
-                            ? "opacity-50 cursor-not-allowed"
-                            : ""
+                          currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
                         }`}
                         disabled={currentPage === 1}
                       >
@@ -473,9 +429,7 @@ const Cart: React.FC = () => {
                       <button
                         onClick={handleNextPage}
                         className={`py-2 px-4 rounded ${
-                          currentPage === totalPages
-                            ? "opacity-50 cursor-not-allowed"
-                            : ""
+                          currentPage === totalPages ? "opacity-50 cursor-not-allowed" : ""
                         }`}
                         disabled={currentPage === totalPages}
                       >
@@ -504,7 +458,10 @@ const Cart: React.FC = () => {
                     placeholder="กรอกโค้ดส่วนลด"
                     className="w-3/4 border rounded p-1.5 mr-1"
                     value={promotionCode}
-                    onChange={(e) => setPromotionCode(e.target.value)}
+                    onChange={(e) => {
+                      setPromotionCode(e.target.value);
+                      setDiscountPercentage(0);
+                    }}
                   />
                   <button
                     onClick={applyPromotionCode}
@@ -513,9 +470,7 @@ const Cart: React.FC = () => {
                     ใช้โค้ด
                   </button>
                 </div>
-                {promotionError && (
-                  <p className="text-red-500 text-sm mb-2">{promotionError}</p>
-                )}
+                {promotionError && <p className="text-red-500 text-sm mb-2">{promotionError}</p>}
 
                 <p className="text-sm md:text-base">
                   จำนวนสินค้าทั้งหมด: {totalSelectedItems} รายการ
@@ -527,9 +482,7 @@ const Cart: React.FC = () => {
                 <div className="flex justify-between my-2 text-sm md:text-base lg:text-lg">
                   <span>ส่วนลดคูปอง / โปรโมชันโค้ด</span>
                   <span>
-                    {discount > 0
-                      ? `-฿${discount.toFixed(2)}`
-                      : `฿${discount.toFixed(2)}`}
+                    {discount > 0 ? `-฿${discount.toFixed(2)}` : `฿${discount.toFixed(2)}`}
                   </span>
                 </div>
                 <div className="flex justify-between font-bold text-lg md:text-xl lg:text-2xl my-2">
@@ -573,14 +526,12 @@ const Cart: React.FC = () => {
             <h2 className="text-lg font-bold mb-2">ยืนยันการสั่งซื้อ</h2>
             <p>คุณแน่ใจหรือว่าต้องการสั่งซื้อสินค้านี้?</p>
             <div className="flex justify-between mt-4">
-              <button
-                onClick={cancelCheckout}
-                className="py-2 px-4 bg-gray-300 rounded"
-              >
+              <button onClick={cancelCheckout} className="py-2 px-4 bg-gray-300 rounded">
                 ยกเลิก
               </button>
               <button
                 onClick={confirmCheckout}
+                disabled={checkingOut}
                 className="py-2 px-4 bg-black text-white rounded"
               >
                 ยืนยัน

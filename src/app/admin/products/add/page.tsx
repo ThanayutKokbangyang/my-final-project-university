@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -6,7 +6,7 @@ import Layout from "@/app/components/admin/Layout";
 import { useSession } from "next-auth/react";
 import Loading from "@/app/components/Loading";
 import { CldUploadWidget, CldImage } from "next-cloudinary";
-import { Gender } from '@prisma/client';
+import { Gender } from "@prisma/client";
 import { Icon } from "@iconify/react";
 import Swal from "sweetalert2";
 import dynamic from "next/dynamic";
@@ -21,16 +21,16 @@ const AddProduct = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [newProduct, setNewProduct] = useState<any>({
-    title: '',
-    description: '',
-    howToUse: '',
+    title: "",
+    description: "",
+    howToUse: "",
     images: [],
-    isNew: false, 
-    gender: Gender.UNISEX, 
-    fragranceFamilyId: '',
-    productTypeId: '',
-    formulaId: '',
-    ingredientId: '',
+    isNew: false,
+    gender: Gender.UNISEX,
+    fragranceFamilyId: "",
+    productTypeId: "",
+    formulaId: "",
+    ingredientId: "",
   });
   const [inventories, setInventories] = useState<Array<any>>([]);
   const [newInventory, setNewInventory] = useState({ size: 0, price: 0, stock: 0 });
@@ -42,12 +42,13 @@ const AddProduct = () => {
 
   const fetchDropdownData = async () => {
     try {
-      const [fragranceFamilyResponse, productTypeResponse, formulaResponse, ingredientResponse] = await Promise.all([
-        fetch('/api/fragrance-families'),
-        fetch('/api/product-types'),
-        fetch('/api/formulas'),
-        fetch('/api/ingredients'),
-      ]);
+      const [fragranceFamilyResponse, productTypeResponse, formulaResponse, ingredientResponse] =
+        await Promise.all([
+          fetch("/api/fragrance-families"),
+          fetch("/api/product-types"),
+          fetch("/api/formulas"),
+          fetch("/api/ingredients"),
+        ]);
       setFragranceFamilies(await fragranceFamilyResponse.json());
       setProductTypes(await productTypeResponse.json());
       setFormulas(await formulaResponse.json());
@@ -77,28 +78,28 @@ const AddProduct = () => {
       });
       return;
     }
-  
+
     try {
-      const productResponse = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const productResponse = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newProduct),
       });
-  
+
       if (productResponse.ok) {
         const addedProduct = await productResponse.json();
-        
+
         // Add inventories related to the product
         const inventoryRequests = inventories.map((inventory) => {
-          return fetch('/api/inventories', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+          return fetch("/api/inventories", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ...inventory, productId: addedProduct.id }),
           });
         });
-  
+
         await Promise.all(inventoryRequests);
-        router.push('/admin/products');
+        router.push("/admin/products");
       } else {
         console.error("Failed to add product:", await productResponse.json());
       }
@@ -178,7 +179,10 @@ const AddProduct = () => {
         <div className="flex flex-col p-4 mt-2 mx-auto max-w-7xl transition-all duration-300 sm:p-6 lg:p-8">
           {/* Breadcrumb */}
           <nav className="text-sm text-gray-500 mb-4">
-            <span className="hover:text-gray-700 cursor-pointer" onClick={() => router.push('/admin/products')}>
+            <span
+              className="hover:text-gray-700 cursor-pointer"
+              onClick={() => router.push("/admin/products")}
+            >
               Products
             </span>
             <span className="mx-2">/</span>
@@ -195,7 +199,7 @@ const AddProduct = () => {
               {/* Product Basic Information */}
               <div className="border border-black p-4">
                 <h2 className="text-lg font-semibold mb-4 flex items-center">
-                  <Icon icon="mingcute:information-line" className="mr-2 text-2xl" /> 
+                  <Icon icon="mingcute:information-line" className="mr-2 text-2xl" />
                   Basic Information
                 </h2>
                 <input
@@ -235,7 +239,7 @@ const AddProduct = () => {
               {/* Category and Dropdown Information */}
               <div className="border border-black p-4">
                 <h2 className="text-lg font-semibold mb-4 flex items-center">
-                  <Icon icon="carbon:collapse-categories" className="mr-2 text-2xl" /> 
+                  <Icon icon="carbon:collapse-categories" className="mr-2 text-2xl" />
                   Category
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -257,7 +261,12 @@ const AddProduct = () => {
                     <label className="block mb-2">Fragrance Family</label>
                     <select
                       value={newProduct.fragranceFamilyId}
-                      onChange={(e) => setNewProduct({ ...newProduct, fragranceFamilyId: parseInt(e.target.value) })}
+                      onChange={(e) =>
+                        setNewProduct({
+                          ...newProduct,
+                          fragranceFamilyId: parseInt(e.target.value),
+                        })
+                      }
                       className="w-full px-4 py-2 border border-gray-300"
                     >
                       <option value="">Select Fragrance Family</option>
@@ -272,7 +281,9 @@ const AddProduct = () => {
                     <label className="block mb-2">Product Type</label>
                     <select
                       value={newProduct.productTypeId}
-                      onChange={(e) => setNewProduct({ ...newProduct, productTypeId: parseInt(e.target.value) })}
+                      onChange={(e) =>
+                        setNewProduct({ ...newProduct, productTypeId: parseInt(e.target.value) })
+                      }
                       className="w-full px-4 py-2 border border-gray-300"
                     >
                       <option value="">Select Product Type</option>
@@ -287,7 +298,9 @@ const AddProduct = () => {
                     <label className="block mb-2">Formula</label>
                     <select
                       value={newProduct.formulaId}
-                      onChange={(e) => setNewProduct({ ...newProduct, formulaId: parseInt(e.target.value) })}
+                      onChange={(e) =>
+                        setNewProduct({ ...newProduct, formulaId: parseInt(e.target.value) })
+                      }
                       className="w-full px-4 py-2 border border-gray-300"
                     >
                       <option value="">Select Formula</option>
@@ -302,7 +315,9 @@ const AddProduct = () => {
                     <label className="block mb-2">Ingredient</label>
                     <select
                       value={newProduct.ingredientId}
-                      onChange={(e) => setNewProduct({ ...newProduct, ingredientId: parseInt(e.target.value) })}
+                      onChange={(e) =>
+                        setNewProduct({ ...newProduct, ingredientId: parseInt(e.target.value) })
+                      }
                       className="w-full px-4 py-2 border border-gray-300"
                     >
                       <option value="">Select Ingredient</option>
@@ -322,7 +337,7 @@ const AddProduct = () => {
               {/* Product Images */}
               <div className="border border-black p-4">
                 <h2 className="text-lg font-semibold mb-4 flex items-center">
-                  <Icon icon="lucide:images" className="mr-2 text-2xl" /> 
+                  <Icon icon="lucide:images" className="mr-2 text-2xl" />
                   Product Images
                 </h2>
                 <CldUploadWidget onSuccess={handleUploadSuccess} uploadPreset="mpexriwx">
@@ -336,80 +351,92 @@ const AddProduct = () => {
                   )}
                 </CldUploadWidget>
                 <div className="flex flex-wrap mt-4 gap-4">
-  {newProduct.images.map((imageUrl: string) => (
-    <div key={imageUrl} className="relative w-24 h-24 sm:w-32 sm:h-32">
-      <CldImage
-        src={imageUrl}
-        alt="Product Image"
-        width={128}
-        height={128}
-        className="rounded-lg shadow-md w-full h-full object-cover"
-      />
-      <button
-        onClick={() => handleDeleteImage(imageUrl)}
-        className="absolute top-0 right-0 p-1 bg-red-500 text-white rounded-full"
-      >
-        X
-      </button>
-    </div>
-  ))}
-</div>
+                  {newProduct.images.map((imageUrl: string) => (
+                    <div key={imageUrl} className="relative w-24 h-24 sm:w-32 sm:h-32">
+                      <CldImage
+                        src={imageUrl}
+                        alt="Product Image"
+                        width={128}
+                        height={128}
+                        className="rounded-lg shadow-md w-full h-full object-cover"
+                      />
+                      <button
+                        onClick={() => handleDeleteImage(imageUrl)}
+                        className="absolute top-0 right-0 p-1 bg-red-500 text-white rounded-full"
+                      >
+                        X
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-             {/* Inventory Management */}
-<div className="border border-black p-4">
-  <h2 className="text-lg font-semibold mb-4 flex items-center">
-    <Icon icon="material-symbols:warehouse-outline" className="mr-2 text-2xl" />
-    Inventory Management
-  </h2>
+              {/* Inventory Management */}
+              <div className="border border-black p-4">
+                <h2 className="text-lg font-semibold mb-4 flex items-center">
+                  <Icon icon="material-symbols:warehouse-outline" className="mr-2 text-2xl" />
+                  Inventory Management
+                </h2>
 
-  <div className="flex flex-col space-y-4 md:flex-row md:space-x-4 md:space-y-0 mb-4">
-    {/* Size Input with "ml" Icon */}
-    <div className="relative flex items-center w-full">
-      <input
-        type="number"
-        step="0.01"
-        placeholder="Size"
-        value={newInventory.size}
-        onChange={(e) => setNewInventory({ ...newInventory, size: parseFloat(e.target.value) || 0 })}
-        className="pl-4 pr-10 w-full px-4 py-2 border border-gray-300"
-      />
-      {/* "ml" Icon */}
-      <span className="absolute right-3 text-gray-500">ml</span>
-    </div>
+                <div className="flex flex-col space-y-4 md:flex-row md:space-x-4 md:space-y-0 mb-4">
+                  {/* Size Input with "ml" Icon */}
+                  <div className="relative flex items-center w-full">
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Size"
+                      value={newInventory.size}
+                      onChange={(e) =>
+                        setNewInventory({ ...newInventory, size: parseFloat(e.target.value) || 0 })
+                      }
+                      className="pl-4 pr-10 w-full px-4 py-2 border border-gray-300"
+                    />
+                    {/* "ml" Icon */}
+                    <span className="absolute right-3 text-gray-500">ml</span>
+                  </div>
 
-    {/* Price Input */}
-    <div className="relative flex items-center w-full">
-      <Icon icon="tabler:currency-bath" className="absolute left-3 text-gray-500 w-5 h-5" />
-      <input
-        type="number"
-        placeholder="Price"
-        value={newInventory.price}
-        onChange={(e) => setNewInventory({ ...newInventory, price: parseFloat(e.target.value) })}
-        className="pl-10 w-full px-4 py-2 border border-gray-300"
-      />
-    </div>
+                  {/* Price Input */}
+                  <div className="relative flex items-center w-full">
+                    <Icon
+                      icon="tabler:currency-bath"
+                      className="absolute left-3 text-gray-500 w-5 h-5"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Price"
+                      value={newInventory.price}
+                      onChange={(e) =>
+                        setNewInventory({ ...newInventory, price: parseFloat(e.target.value) })
+                      }
+                      className="pl-10 w-full px-4 py-2 border border-gray-300"
+                    />
+                  </div>
 
-    {/* Stock Input */}
-    <div className="relative flex items-center w-full">
-      <Icon icon="material-symbols:warehouse-outline" className="absolute left-3 text-gray-500 w-5 h-5" />
-      <input
-        type="number"
-        placeholder="Stock"
-        value={newInventory.stock}
-        onChange={(e) => setNewInventory({ ...newInventory, stock: parseInt(e.target.value) })}
-        className="pl-10 w-full px-4 py-2 border border-gray-300"
-      />
-    </div>
+                  {/* Stock Input */}
+                  <div className="relative flex items-center w-full">
+                    <Icon
+                      icon="material-symbols:warehouse-outline"
+                      className="absolute left-3 text-gray-500 w-5 h-5"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Stock"
+                      value={newInventory.stock}
+                      onChange={(e) =>
+                        setNewInventory({ ...newInventory, stock: parseInt(e.target.value) })
+                      }
+                      className="pl-10 w-full px-4 py-2 border border-gray-300"
+                    />
+                  </div>
 
-    {/* Add Inventory Button */}
-    <button
-      onClick={handleAddInventory}
-      className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-all duration-300"
-    >
-      <Icon icon="icons8:plus" width={24} height={24} />
-    </button>
-  </div>
+                  {/* Add Inventory Button */}
+                  <button
+                    onClick={handleAddInventory}
+                    className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-all duration-300"
+                  >
+                    <Icon icon="icons8:plus" width={24} height={24} />
+                  </button>
+                </div>
 
                 {/* Display List of Inventories */}
                 <div className="mt-4">
@@ -438,11 +465,15 @@ const AddProduct = () => {
                           <div className="flex justify-between items-center mt-4">
                             <div className="flex flex-col items-start">
                               <span className="text-sm font-semibold text-gray-500">Price:</span>
-                              <span className="text-xl font-bold text-gray-800">฿{inventory.price.toFixed(2)}</span>
+                              <span className="text-xl font-bold text-gray-800">
+                                ฿{inventory.price.toFixed(2)}
+                              </span>
                             </div>
                             <div className="flex flex-col items-start">
                               <span className="text-sm font-semibold text-gray-500">Stock:</span>
-                              <span className="text-xl font-bold text-gray-800">{inventory.stock}</span>
+                              <span className="text-xl font-bold text-gray-800">
+                                {inventory.stock}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -456,16 +487,16 @@ const AddProduct = () => {
             </div>
           </div>
 
-        {/* Save Product Button */}
-<div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4 mt-8">
-  <button
-    onClick={handleAddProduct}
-    className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-all duration-300 w-full sm:w-auto flex items-center justify-center"
-  >
-    <Icon icon="lucide-lab:save" className="mr-2 w-5 h-5" /> {/* Save Icon */}
-    Save Product
-  </button>
-</div>
+          {/* Save Product Button */}
+          <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4 mt-8">
+            <button
+              onClick={handleAddProduct}
+              className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-all duration-300 w-full sm:w-auto flex items-center justify-center"
+            >
+              <Icon icon="lucide-lab:save" className="mr-2 w-5 h-5" /> {/* Save Icon */}
+              Save Product
+            </button>
+          </div>
         </div>
       </Layout>
     );

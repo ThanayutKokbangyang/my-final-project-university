@@ -1,13 +1,13 @@
-import { NextResponse, NextRequest } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { isAdmin } from '../../../util/isAdmin'; // Import isAdmin function
+import { safeJson } from "@/lib/json";
+import prisma from "@/lib/prisma";
+import { NextResponse, NextRequest } from "next/server";
 
-const prisma = new PrismaClient();
+import { isAdmin } from "../../../util/isAdmin"; // Import isAdmin function
 
 export const GET = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
@@ -18,24 +18,24 @@ export const GET = async (req: NextRequest) => {
       },
     });
 
-    return NextResponse.json(promotionUsage, { status: 200 });
+    return safeJson(promotionUsage, { status: 200 });
   } catch (error) {
-    console.error('Failed to fetch promotion usage:', error);
-    return NextResponse.json({ error: 'Failed to fetch promotion usage.' }, { status: 500 });
+    console.error("Failed to fetch promotion usage:", error);
+    return safeJson({ error: "Failed to fetch promotion usage." }, { status: 500 });
   }
 };
 
 export const POST = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { promotionCodeId, userId } = await req.json();
 
     if (!promotionCodeId || !userId) {
-      return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
+      return safeJson({ error: "Missing required fields." }, { status: 400 });
     }
 
     const newPromotionUsage = await prisma.promotionUsage.create({
@@ -46,33 +46,35 @@ export const POST = async (req: NextRequest) => {
       },
     });
 
-    return NextResponse.json(newPromotionUsage, { status: 201 });
+    return safeJson(newPromotionUsage, { status: 201 });
   } catch (error) {
-    console.error('Failed to create promotion usage:', error);
-    return NextResponse.json({ error: 'Failed to create promotion usage.' }, { status: 500 });
+    console.error("Failed to create promotion usage:", error);
+    return safeJson({ error: "Failed to create promotion usage." }, { status: 500 });
   }
 };
 
 export const DELETE = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { id } = await req.json();
 
     if (!id) {
-      return NextResponse.json({ error: 'Missing required field: id.' }, { status: 400 });
+      return safeJson({ error: "Missing required field: id." }, { status: 400 });
     }
 
     const deletedPromotionUsage = await prisma.promotionUsage.delete({
       where: { id },
     });
 
-    return NextResponse.json(deletedPromotionUsage, { status: 200 });
+    return safeJson(deletedPromotionUsage, { status: 200 });
   } catch (error) {
-    console.error('Failed to delete promotion usage:', error);
-    return NextResponse.json({ error: 'Failed to delete promotion usage.' }, { status: 500 });
+    console.error("Failed to delete promotion usage:", error);
+    return safeJson({ error: "Failed to delete promotion usage." }, { status: 500 });
   }
 };
+
+export const dynamic = "force-dynamic";

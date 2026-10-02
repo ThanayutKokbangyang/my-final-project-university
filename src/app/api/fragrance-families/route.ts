@@ -1,15 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { isAdmin } from '../../util/isAdmin'; // นำเข้า isAdmin จากไฟล์ที่แยกไว้ (ยังคงไว้สำหรับ POST, PUT, DELETE)
+import { errorResponse, positiveInt } from "@/lib/http";
+import { safeJson } from "@/lib/json";
+import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 
-const prisma = new PrismaClient();
+import { isAdmin } from "../../util/isAdmin"; // นำเข้า isAdmin จากไฟล์ที่แยกไว้ (ยังคงไว้สำหรับ POST, PUT, DELETE)
 
 // GET: ดึงข้อมูล FragranceFamily ทั้งหมด หรือค้นหาตามชื่อ (ทุกคนสามารถเข้าถึงได้)
 export const GET = async (req: NextRequest) => {
   try {
     // ดึง query parameter จาก URL
     const { searchParams } = new URL(req.url);
-    const nameQuery = searchParams.get('name'); // ดึงค่า name จาก query
+    const nameQuery = searchParams.get("name"); // ดึงค่า name จาก query
 
     let fragranceFamilies;
 
@@ -36,10 +37,10 @@ export const GET = async (req: NextRequest) => {
       });
     }
 
-    return NextResponse.json(fragranceFamilies, { status: 200 });
+    return safeJson(fragranceFamilies, { status: 200 });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Failed to fetch fragrance families.' }, { status: 500 });
+    return errorResponse(error);
   }
 };
 
@@ -47,14 +48,14 @@ export const GET = async (req: NextRequest) => {
 export const POST = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { name } = await req.json();
 
-    if (!name) {
-      return NextResponse.json({ error: 'Missing required field: name.' }, { status: 400 });
+    if (typeof name !== "string" || !name.trim() || name.length > 100) {
+      return safeJson({ error: "Missing required field: name." }, { status: 400 });
     }
 
     const newFragranceFamily = await prisma.fragranceFamily.create({
@@ -63,10 +64,10 @@ export const POST = async (req: NextRequest) => {
       },
     });
 
-    return NextResponse.json(newFragranceFamily, { status: 201 });
+    return safeJson(newFragranceFamily, { status: 201 });
   } catch (error) {
-    console.error('Failed to create fragrance family:', error);
-    return NextResponse.json({ error: 'Failed to create fragrance family.' }, { status: 500 });
+    console.error("Failed to create fragrance family:", error);
+    return errorResponse(error);
   }
 };
 
@@ -74,14 +75,14 @@ export const POST = async (req: NextRequest) => {
 export const PUT = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { id, name } = await req.json();
 
-    if (!id || !name) {
-      return NextResponse.json({ error: 'Missing required fields: id or name.' }, { status: 400 });
+    if (!positiveInt(id) || typeof name !== "string" || !name.trim() || name.length > 100) {
+      return safeJson({ error: "Missing required fields: id or name." }, { status: 400 });
     }
 
     const updatedFragranceFamily = await prisma.fragranceFamily.update({
@@ -90,10 +91,10 @@ export const PUT = async (req: NextRequest) => {
         name,
       },
     });
-    return NextResponse.json(updatedFragranceFamily, { status: 200 });
+    return safeJson(updatedFragranceFamily, { status: 200 });
   } catch (error) {
-    console.error('Failed to update fragrance family:', error);
-    return NextResponse.json({ error: 'Failed to update fragrance family.' }, { status: 500 });
+    console.error("Failed to update fragrance family:", error);
+    return errorResponse(error);
   }
 };
 
@@ -101,22 +102,24 @@ export const PUT = async (req: NextRequest) => {
 export const DELETE = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { id } = await req.json();
 
-    if (!id) {
-      return NextResponse.json({ error: 'Missing required field: id.' }, { status: 400 });
+    if (!positiveInt(id)) {
+      return safeJson({ error: "Missing required field: id." }, { status: 400 });
     }
 
     const deletedFragranceFamily = await prisma.fragranceFamily.delete({
       where: { id },
     });
-    return NextResponse.json(deletedFragranceFamily, { status: 200 });
+    return safeJson(deletedFragranceFamily, { status: 200 });
   } catch (error) {
-    console.error('Failed to delete fragrance family:', error);
-    return NextResponse.json({ error: 'Failed to delete fragrance family.' }, { status: 500 });
+    console.error("Failed to delete fragrance family:", error);
+    return errorResponse(error);
   }
 };
+
+export const dynamic = "force-dynamic";

@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { isAdmin } from '../../../util/isAdmin';
+import { errorResponse, HttpError, positiveIds } from "@/lib/http";
+import { safeJson } from "@/lib/json";
+import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 
-const prisma = new PrismaClient();
+import { isAdmin } from "../../../util/isAdmin";
 
 // ... (GET and PATCH methods remain unchanged)
 
@@ -10,17 +11,21 @@ const prisma = new PrismaClient();
 export const DELETE = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { ids } = await req.json();
-    
+
     // Validate input
     if (!Array.isArray(ids) || ids.length === 0) {
-      return NextResponse.json({ error: 'Order IDs are required.' }, { status: 400 });
+      return safeJson({ error: "Order IDs are required." }, { status: 400 });
     }
 
+    positiveIds(ids);
+    if (await prisma.order.count({ where: { id: { in: ids }, stockReserved: true } })) {
+      throw new HttpError(409, "Cancel or expire the active checkout before deleting this order");
+    }
     const deletedOrders = await prisma.order.deleteMany({
       where: {
         id: {
@@ -29,11 +34,13 @@ export const DELETE = async (req: NextRequest) => {
       },
     });
 
-    return NextResponse.json({ deletedCount: deletedOrders.count }, { status: 200 });
+    return safeJson({ deletedCount: deletedOrders.count }, { status: 200 });
   } catch (error) {
-    console.error('Failed to delete orders:', error);
-    return NextResponse.json({ error: 'Failed to delete orders.' }, { status: 500 });
+    console.error("Failed to delete orders:", error);
+    return errorResponse(error);
   }
 };
 
 // ... (Any other methods like PATCH, GET remain unchanged)
+
+export const dynamic = "force-dynamic";

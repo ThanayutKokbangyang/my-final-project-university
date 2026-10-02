@@ -1,21 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient, OrderStatus } from '@prisma/client';
-import { isAdmin } from '../../util/isAdmin';
-
-const prisma = new PrismaClient();
+import { errorResponse, HttpError, positiveIds } from "@/lib/http";
+import { safeJson } from "@/lib/json";
+import { orderUserSelect } from "@/lib/users";
+import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
+import { OrderStatus } from "@prisma/client";
+import { isAdmin } from "../../util/isAdmin";
 
 // GET: Fetch orders with optional filters
 export const GET = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { searchParams } = new URL(req.url);
-    const orderId = searchParams.get('orderId') || '';
-    const paymentStatus = searchParams.get('paymentStatus') || '';
-    const status = searchParams.get('status') || '';
+    const orderId = searchParams.get("orderId") || "";
+    const paymentStatus = searchParams.get("paymentStatus") || "";
+    const status = searchParams.get("status") || "";
 
     const orders = await prisma.order.findMany({
       where: {
@@ -24,7 +26,7 @@ export const GET = async (req: NextRequest) => {
         ...(status && { status: status as OrderStatus }),
       },
       include: {
-        user: true,
+        user: { select: orderUserSelect },
         orderItems: {
           include: {
             product: true,
@@ -35,10 +37,10 @@ export const GET = async (req: NextRequest) => {
       },
     });
 
-    return NextResponse.json(orders, { status: 200 });
+    return safeJson(orders, { status: 200 });
   } catch (error) {
-    console.error('Failed to fetch orders:', error);
-    return NextResponse.json({ error: 'Failed to fetch orders.' }, { status: 500 });
+    console.error("Failed to fetch orders:", error);
+    return safeJson({ error: "Failed to fetch orders." }, { status: 500 });
   }
 };
 
@@ -46,31 +48,31 @@ export const GET = async (req: NextRequest) => {
 export const PATCH = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { id, status } = await req.json();
-    console.log('Received PATCH request with:', { id, status }); // Log incoming data
+    // Log incoming data
 
     // Validate the input
     if (!id || !status) {
-      console.error('Validation error: Missing ID or status');
-      return NextResponse.json({ error: 'Order ID and status are required.' }, { status: 400 });
+      console.error("Validation error: Missing ID or status");
+      return safeJson({ error: "Order ID and status are required." }, { status: 400 });
     }
 
     // Ensure the status is valid
-    const validStatuses = ['PENDING', 'SHIPPED', 'TRANSIT', 'DELIVERED'];
+    const validStatuses = ["PENDING", "SHIPPED", "TRANSIT", "DELIVERED"];
     if (!validStatuses.includes(status)) {
-      console.error('Validation error: Invalid status');
-      return NextResponse.json({ error: 'Invalid order status.' }, { status: 400 });
+      console.error("Validation error: Invalid status");
+      return safeJson({ error: "Invalid order status." }, { status: 400 });
     }
 
     const updatedOrder = await prisma.order.update({
       where: { id },
       data: { status },
       include: {
-        user: true,
+        user: { select: orderUserSelect },
         orderItems: {
           include: {
             product: true,
@@ -81,11 +83,11 @@ export const PATCH = async (req: NextRequest) => {
       },
     });
 
-    console.log('Order updated successfully:', updatedOrder); // Log updated order
-    return NextResponse.json(updatedOrder, { status: 200 });
+    // Log updated order
+    return safeJson(updatedOrder, { status: 200 });
   } catch (error) {
-    console.error('Failed to update order status:', error);
-    return NextResponse.json({ error: 'Failed to update order status.' }, { status: 500 });
+    console.error("Failed to update order status:", error);
+    return safeJson({ error: "Failed to update order status." }, { status: 500 });
   }
 };
 
@@ -93,7 +95,7 @@ export const PATCH = async (req: NextRequest) => {
 export const DELETE = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
@@ -101,16 +103,20 @@ export const DELETE = async (req: NextRequest) => {
 
     // Validate the input
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return NextResponse.json({ error: 'No valid IDs provided.' }, { status: 400 });
+      return safeJson({ error: "No valid IDs provided." }, { status: 400 });
     }
 
+    positiveIds(ids);
+    if (await prisma.order.count({ where: { id: { in: ids }, stockReserved: true } })) {
+      throw new HttpError(409, "Cancel or expire the active checkout before deleting this order");
+    }
     // Perform deletion for each ID
     const deletedOrders = await Promise.all(
-      ids.map(id => {
+      ids.map((id) => {
         return prisma.order.delete({
           where: { id },
           include: {
-            user: true,
+            user: { select: orderUserSelect },
             orderItems: {
               include: {
                 product: true,
@@ -120,12 +126,14 @@ export const DELETE = async (req: NextRequest) => {
             address: true,
           },
         });
-      })
+      }),
     );
 
-    return NextResponse.json(deletedOrders, { status: 200 });
+    return safeJson(deletedOrders, { status: 200 });
   } catch (error) {
-    console.error('Failed to delete orders:', error);
-    return NextResponse.json({ error: 'Failed to delete orders.' }, { status: 500 });
+    console.error("Failed to delete orders:", error);
+    return errorResponse(error);
   }
 };
+
+export const dynamic = "force-dynamic";

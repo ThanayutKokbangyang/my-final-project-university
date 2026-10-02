@@ -102,13 +102,7 @@ const Sidebar = ({ isCollapsed }: { isCollapsed: boolean }) => {
   );
 };
 
-const SidebarItem = ({
-  item,
-  isCollapsed,
-}: {
-  item: ISidebarItem;
-  isCollapsed: boolean;
-}) => {
+const SidebarItem = ({ item, isCollapsed }: { item: ISidebarItem; isCollapsed: boolean }) => {
   const { name, icon, items, path } = item;
   const [expanded, setExpanded] = useState(false);
   const [contentHeight, setContentHeight] = useState("0px");
@@ -174,7 +168,12 @@ const SidebarItem = ({
       >
         <div className="flex items-center space-x-2">
           {/* Icon */}
-          <Icon icon={icon} width={24} height={24} className="transition-all duration-300 transform hover:scale-110" />
+          <Icon
+            icon={icon}
+            width={24}
+            height={24}
+            className="transition-all duration-300 transform hover:scale-110"
+          />
           {/* Text label, hidden when sidebar is collapsed */}
           {!isCollapsed && <p className="text-sm font-semibold">{name}</p>}
         </div>

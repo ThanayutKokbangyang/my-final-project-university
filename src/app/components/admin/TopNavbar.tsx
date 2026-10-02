@@ -13,7 +13,7 @@ const TopNavbar = ({ toggleSidebar }: TopNavbarProps) => {
     if (typeof window !== "undefined") {
       return window.innerWidth < 1024; // Change to 1024 to include tablets
     }
-    return false; 
+    return false;
   });
 
   useEffect(() => {
@@ -28,7 +28,7 @@ const TopNavbar = ({ toggleSidebar }: TopNavbarProps) => {
 
   useEffect(() => {
     if (isMobile && session?.user) {
-      document.body.style.paddingBottom = "3rem"; 
+      document.body.style.paddingBottom = "3rem";
     } else {
       document.body.style.paddingBottom = "0";
     }

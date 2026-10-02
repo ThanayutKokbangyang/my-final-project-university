@@ -30,7 +30,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
       <body className={inter.className}>
         <SessionProvider session={session}>
           <FavoriteProvider>
-            <CartProvider> {/* เพิ่ม CartProvider */}
+            <CartProvider>
+              {" "}
+              {/* เพิ่ม CartProvider */}
               <SearchProvider>{children}</SearchProvider>
             </CartProvider>
           </FavoriteProvider>

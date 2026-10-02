@@ -1,7 +1,7 @@
 // app/admin/[slug]/page.tsx
-'use client';
-import { useParams } from 'next/navigation';
-import React from 'react';
+"use client";
+import { useParams } from "next/navigation";
+import React from "react";
 
 const AdminPage = () => {
   const params = useParams(); // ใช้ useParams ดึง slug จาก URL

@@ -1,19 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
+import { safeJson } from "@/lib/json";
+import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 
-const prisma = new PrismaClient();
+import bcrypt from "bcrypt";
 
 export const POST = async (req: NextRequest) => {
   try {
     const body = await req.json();
-  
 
     const { token, email, newPassword } = body;
 
-    if (!token || !email || !newPassword) {
-      console.log('Missing required fields:', { token, email, newPassword });
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (
+      typeof token !== "string" ||
+      typeof email !== "string" ||
+      typeof newPassword !== "string" ||
+      newPassword.length < 8 ||
+      Buffer.byteLength(newPassword, "utf8") > 72
+    ) {
+      return safeJson({ error: "Missing required fields" }, { status: 400 });
     }
 
     // Find the user by email
@@ -22,22 +26,22 @@ export const POST = async (req: NextRequest) => {
     });
 
     // Validate the token and expiration
-   if (!user || !user.resetPasswordToken || user.resetPasswordToken !== token || !user.resetPasswordExpires || new Date() > new Date(user.resetPasswordExpires)) {
-  console.log('Invalid token or token expired:', {
-    userExists: !!user,
-    resetPasswordToken: user?.resetPasswordToken,
-    tokenMatches: user?.resetPasswordToken === token,
-    isExpired: user?.resetPasswordExpires ? new Date() > new Date(user.resetPasswordExpires) : true,
-  });
-  return NextResponse.json({ error: 'Invalid or expired token' }, { status: 400 });
-}
+    if (
+      !user ||
+      !user.resetPasswordToken ||
+      user.resetPasswordToken !== token ||
+      !user.resetPasswordExpires ||
+      new Date() > new Date(user.resetPasswordExpires)
+    ) {
+      return safeJson({ error: "Invalid or expired token" }, { status: 400 });
+    }
 
     // Hash the new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Update the user's password and clear the reset token and expiration date
-    await prisma.user.update({
-      where: { email },
+    const updated = await prisma.user.updateMany({
+      where: { email, resetPasswordToken: token, resetPasswordExpires: { gt: new Date() } },
       data: {
         password: hashedPassword,
         resetPasswordToken: null, // Clear the reset token
@@ -45,13 +49,18 @@ export const POST = async (req: NextRequest) => {
       },
     });
 
-    return NextResponse.json({ message: 'Password reset successfully' }, { status: 200 });
+    if (updated.count !== 1)
+      return safeJson({ error: "Invalid or expired token" }, { status: 400 });
+
+    return safeJson({ message: "Password reset successfully" }, { status: 200 });
   } catch (error) {
-    console.error('Error resetting password:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error resetting password:", error);
+    return safeJson({ error: "Internal server error" }, { status: 500 });
   }
 };
 
 export const GET = () => {
-  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
+  return safeJson({ error: "Method not allowed" }, { status: 405 });
 };
+
+export const dynamic = "force-dynamic";

@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '../../auth/authOptions';
+import { safeJson } from "@/lib/json";
+import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
 
-export const dynamic = 'force-dynamic';
+import { authOptions } from "../../auth/authOptions";
 
-const prisma = new PrismaClient();
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
     const session = await getServerSession(authOptions);
 
     // Check if the user is authenticated
-    if (!session || !session.user) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    if (!session?.user?.id) {
+      return safeJson({ message: "Unauthorized" }, { status: 401 });
     }
 
     // Extract userId from the session
@@ -22,12 +22,12 @@ export async function GET(req: NextRequest) {
 
     // Extract productId from the URL query
     const { searchParams } = new URL(req.url);
-    const productId = searchParams.get('productId');
+    const productId = searchParams.get("productId");
 
     // Check if productId is provided and is a valid number
     const parsedProductId = productId ? parseInt(productId, 10) : null;
     if (!parsedProductId || isNaN(parsedProductId)) {
-      return NextResponse.json({ message: 'Valid product ID is required' }, { status: 400 });
+      return safeJson({ message: "Valid product ID is required" }, { status: 400 });
     }
 
     // Find favorite using productId and userId
@@ -41,11 +41,10 @@ export async function GET(req: NextRequest) {
     });
 
     // Respond based on whether the product is a favorite
-    return NextResponse.json({ isFavorite: !!favorite }, { status: 200 });
-
+    return safeJson({ isFavorite: !!favorite }, { status: 200 });
   } catch (error) {
-    console.error('Failed to check favorite status:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    console.error("Failed to check favorite status:", error);
+    return safeJson({ message: "Internal server error" }, { status: 500 });
   } finally {
     // Ensure Prisma Client is disconnected after use
     await prisma.$disconnect();

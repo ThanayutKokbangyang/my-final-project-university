@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
@@ -30,8 +30,10 @@ const ResetPassword: React.FC = () => {
   }, [router]);
 
   const isSequentialPassword = (password: string) => {
-    const sequentialNumbers = /(0123456789|123456789|987654321|01234|12345|23456|34567|45678|56789|67890)/;
-    const sequentialLetters = /(?:abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)/i;
+    const sequentialNumbers =
+      /(0123456789|123456789|987654321|01234|12345|23456|34567|45678|56789|67890)/;
+    const sequentialLetters =
+      /(?:abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)/i;
     return sequentialNumbers.test(password) || sequentialLetters.test(password);
   };
 
@@ -89,8 +91,10 @@ const ResetPassword: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      <div className="flex-grow flex justify-center items-center py-12 px-4 sm:px-6 lg:px-8">       
-      <div className="max-w-2xl w-full space-y-8 bg-white p-4 md:p-8 border border-black"> {/* เพิ่ม p-4 สำหรับ mobile */}
+      <div className="flex-grow flex justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-2xl w-full space-y-8 bg-white p-4 md:p-8 border border-black">
+          {" "}
+          {/* เพิ่ม p-4 สำหรับ mobile */}
           <h2 className="text-3xl font-bold text-black mb-6">รีเซ็ตรหัสผ่าน</h2>
           <form className="space-y-6" onSubmit={handleResetPassword}>
             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
@@ -122,12 +126,8 @@ const ResetPassword: React.FC = () => {
               />
             </div>
 
-            {errorMessage && (
-              <p className="text-red-600 text-sm">{errorMessage}</p>
-            )}
-            {successMessage && (
-              <p className="text-green-600 text-sm mt-4">{successMessage}</p>
-            )}
+            {errorMessage && <p className="text-red-600 text-sm">{errorMessage}</p>}
+            {successMessage && <p className="text-green-600 text-sm mt-4">{successMessage}</p>}
 
             <button
               type="submit"

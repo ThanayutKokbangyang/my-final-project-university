@@ -12,10 +12,10 @@ export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(MyPrismaClient),
   providers: [
     CredentialsProvider({
-      name: 'Credentials',
+      name: "Credentials",
       credentials: {
-        email: { label: 'Email', type: 'email', placeholder: 'john@doe.com' },
-        password: { label: 'Password', type: 'password' },
+        email: { label: "Email", type: "email", placeholder: "john@doe.com" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials) return null;
@@ -25,14 +25,14 @@ export const authOptions: AuthOptions = {
         });
 
         if (!user) {
-          throw new Error('ไม่พบผู้ใช้งาน');
+          throw new Error("ไม่พบผู้ใช้งาน");
         }
 
         if (!user.emailVerified) {
-          throw new Error('กรุณายืนยันอีเมลของคุณก่อนเข้าสู่ระบบ');
+          throw new Error("กรุณายืนยันอีเมลของคุณก่อนเข้าสู่ระบบ");
         }
 
-        if (user && (await bcrypt.compare(credentials.password, user.password || ''))) {
+        if (user && (await bcrypt.compare(credentials.password, user.password || ""))) {
           return {
             id: user.id,
             name: user.name,
@@ -40,7 +40,7 @@ export const authOptions: AuthOptions = {
             role: user.role,
           };
         } else {
-          throw new Error('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+          throw new Error("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
         }
       },
     }),
@@ -55,28 +55,19 @@ export const authOptions: AuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
-      const dbUser = await MyPrismaClient.user.findFirst({
-        where: { email: token.email as string },
-      });
-
-      if (!dbUser) {
-        token.id = user!.id;
-        return token;
-      }
-
-      return {
-        id: dbUser.id,
-        name: dbUser.name,
-        role: dbUser.role,
-        email: dbUser.email,
-      };
+      const id = user?.id ?? token.id;
+      const dbUser = id
+        ? await MyPrismaClient.user.findUnique({ where: { id } })
+        : token.email
+          ? await MyPrismaClient.user.findUnique({ where: { email: token.email } })
+          : null;
+      if (!dbUser) return { ...token, id: undefined, role: undefined };
+      return { ...token, id: dbUser.id, name: dbUser.name, email: dbUser.email, role: dbUser.role };
     },
-    async session({ session, token }: any) {
-      if (token) {
-        session.user.id = token.id;
-        session.user.name = token.name;
-        session.user.email = token.email;
-        session.user.role = token.role;
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id ?? "";
+        session.user.role = token.role ?? "USER";
       }
       return session;
     },
@@ -84,7 +75,7 @@ export const authOptions: AuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
   pages: {
-    signIn: '/signin',
-    error: '/signin',
+    signIn: "/signin",
+    error: "/signin",
   },
 };

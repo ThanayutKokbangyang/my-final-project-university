@@ -33,11 +33,14 @@ const DiscountCode: React.FC = () => {
   }, []);
 
   const copyToClipboard = (code: string) => {
-    navigator.clipboard.writeText(code).then(() => {
-      alert(`โค้ดส่วนลด "${code}" คัดลอกเรียบร้อย!`);
-    }).catch(() => {
-      alert("เกิดข้อผิดพลาดในการคัดลอกโค้ด");
-    });
+    navigator.clipboard
+      .writeText(code)
+      .then(() => {
+        alert(`โค้ดส่วนลด "${code}" คัดลอกเรียบร้อย!`);
+      })
+      .catch(() => {
+        alert("เกิดข้อผิดพลาดในการคัดลอกโค้ด");
+      });
   };
 
   return (

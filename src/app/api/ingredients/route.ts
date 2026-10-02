@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { isAdmin } from '../../util/isAdmin'; // นำเข้า isAdmin จากไฟล์ที่แยกไว้
+import { errorResponse, positiveInt } from "@/lib/http";
+import { safeJson } from "@/lib/json";
+import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 
-const prisma = new PrismaClient();
+import { isAdmin } from "../../util/isAdmin"; // นำเข้า isAdmin จากไฟล์ที่แยกไว้
 
 // GET: ดึงข้อมูล Ingredient ทั้งหมดหรือค้นหาตามชื่อ
 export const GET = async (req: NextRequest) => {
   try {
     const { searchParams } = new URL(req.url);
-    const nameQuery = searchParams.get('name');
+    const nameQuery = searchParams.get("name");
 
     let ingredients;
 
@@ -31,10 +32,10 @@ export const GET = async (req: NextRequest) => {
       });
     }
 
-    return NextResponse.json(ingredients, { status: 200 });
+    return safeJson(ingredients, { status: 200 });
   } catch (error) {
-    console.error('Failed to fetch ingredients:', error);
-    return NextResponse.json({ error: 'Failed to fetch ingredients.' }, { status: 500 });
+    console.error("Failed to fetch ingredients:", error);
+    return errorResponse(error);
   }
 };
 
@@ -42,24 +43,24 @@ export const GET = async (req: NextRequest) => {
 export const POST = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { name } = await req.json();
 
-    if (!name) {
-      return NextResponse.json({ error: 'Missing required field: name.' }, { status: 400 });
+    if (typeof name !== "string" || !name.trim() || name.length > 100) {
+      return safeJson({ error: "Missing required field: name." }, { status: 400 });
     }
 
     const newIngredient = await prisma.ingredient.create({
       data: { name },
     });
 
-    return NextResponse.json(newIngredient, { status: 201 });
+    return safeJson(newIngredient, { status: 201 });
   } catch (error) {
-    console.error('Failed to create ingredient:', error);
-    return NextResponse.json({ error: 'Failed to create ingredient.' }, { status: 500 });
+    console.error("Failed to create ingredient:", error);
+    return errorResponse(error);
   }
 };
 
@@ -67,14 +68,14 @@ export const POST = async (req: NextRequest) => {
 export const PUT = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { id, name } = await req.json();
 
-    if (!id || !name) {
-      return NextResponse.json({ error: 'Missing required fields: id or name.' }, { status: 400 });
+    if (!positiveInt(id) || typeof name !== "string" || !name.trim() || name.length > 100) {
+      return safeJson({ error: "Missing required fields: id or name." }, { status: 400 });
     }
 
     const updatedIngredient = await prisma.ingredient.update({
@@ -82,10 +83,10 @@ export const PUT = async (req: NextRequest) => {
       data: { name },
     });
 
-    return NextResponse.json(updatedIngredient, { status: 200 });
+    return safeJson(updatedIngredient, { status: 200 });
   } catch (error) {
-    console.error('Failed to update ingredient:', error);
-    return NextResponse.json({ error: 'Failed to update ingredient.' }, { status: 500 });
+    console.error("Failed to update ingredient:", error);
+    return errorResponse(error);
   }
 };
 
@@ -93,23 +94,25 @@ export const PUT = async (req: NextRequest) => {
 export const DELETE = async (req: NextRequest) => {
   const isAdminUser = await isAdmin(req);
   if (!isAdminUser) {
-    return NextResponse.json({ error: 'Access denied: Admins only' }, { status: 403 });
+    return safeJson({ error: "Access denied: Admins only" }, { status: 403 });
   }
 
   try {
     const { id } = await req.json();
 
-    if (!id) {
-      return NextResponse.json({ error: 'Missing required field: id.' }, { status: 400 });
+    if (!positiveInt(id)) {
+      return safeJson({ error: "Missing required field: id." }, { status: 400 });
     }
 
     const deletedIngredient = await prisma.ingredient.delete({
       where: { id },
     });
 
-    return NextResponse.json(deletedIngredient, { status: 200 });
+    return safeJson(deletedIngredient, { status: 200 });
   } catch (error) {
-    console.error('Failed to delete ingredient:', error);
-    return NextResponse.json({ error: 'Failed to delete ingredient.' }, { status: 500 });
+    console.error("Failed to delete ingredient:", error);
+    return errorResponse(error);
   }
 };
+
+export const dynamic = "force-dynamic";

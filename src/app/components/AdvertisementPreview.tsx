@@ -1,7 +1,7 @@
-import React from 'react';
+import React from "react";
 import Slider from "react-slick";
-import 'slick-carousel/slick/slick.css';
-import 'slick-carousel/slick/slick-theme.css';
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 
 interface Advertisement {
   id: number;
@@ -27,21 +27,21 @@ const AdvertisementPreview: React.FC<AdvertisementPreviewProps> = ({ ads }) => {
 
   if (ads.length === 0) {
     return (
-      <div className="bg-gray-100 p-6" style={{ minHeight: '60px' }}>
+      <div className="bg-gray-100 p-6" style={{ minHeight: "60px" }}>
         <p className="text-center">No advertisements available.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-100 p-6 " style={{ minHeight: '40px' }}>
+    <div className="bg-gray-100 p-6 " style={{ minHeight: "40px" }}>
       {ads.length > 1 ? (
         <Slider {...settings}>
           {ads.map((ad) => (
             <div key={ad.id}>
               <div
                 className="text-center text-lg"
-               
+
                 dangerouslySetInnerHTML={{ __html: ad.description }} // Render HTML content
               />
             </div>

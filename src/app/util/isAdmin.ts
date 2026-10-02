@@ -1,13 +1,8 @@
-// isAdmin.ts
-import { getServerSession } from 'next-auth/next';
-import { NextRequest } from 'next/server';
-import { authOptions } from '../api/auth/authOptions';
+import { getServerSession } from "next-auth/next";
+import { NextRequest } from "next/server";
+import { authOptions } from "../api/auth/authOptions";
 
-export async function isAdmin(req: NextRequest) {
-  const session = await getServerSession({ req, ...authOptions });
-    
-  if (!session || !(session.user as { role?: string }).role || (session.user as { role?: string }).role !== 'ADMIN') {
-    return false;
-  }
-  return true;
+export async function isAdmin(_req?: NextRequest) {
+  const session = await getServerSession(authOptions);
+  return session?.user?.role === "ADMIN";
 }

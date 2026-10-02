@@ -43,7 +43,7 @@ const Layout = ({ children }: LayoutProps) => {
       <div
         className={`flex-1 p-4 mt-16 transition-all duration-300 ${
           isCollapsed ? "ml-20" : "ml-64"
-        } overflow-auto`}  // Added overflow-auto for flexible scrolling
+        } overflow-auto`} // Added overflow-auto for flexible scrolling
       >
         {/* Top Navbar */}
         <TopNavbar toggleSidebar={toggleSidebar} />

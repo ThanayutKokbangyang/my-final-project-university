@@ -1,5 +1,5 @@
-'use client';
-import { createContext, useContext, useState, ReactNode } from 'react';
+"use client";
+import { createContext, useContext, useState, ReactNode } from "react";
 
 interface FavoriteContextProps {
   favoriteCount: number;
@@ -13,7 +13,7 @@ const FavoriteContext = createContext<FavoriteContextProps | undefined>(undefine
 export const useFavorite = () => {
   const context = useContext(FavoriteContext);
   if (!context) {
-    throw new Error('useFavorite must be used within a FavoriteProvider');
+    throw new Error("useFavorite must be used within a FavoriteProvider");
   }
   return context;
 };
@@ -22,7 +22,7 @@ export const FavoriteProvider = ({ children }: { children: ReactNode }) => {
   const [favoriteCount, setFavoriteCount] = useState<number>(0);
 
   const increaseFavoriteCount = () => setFavoriteCount((prev) => prev + 1);
-  const decreaseFavoriteCount = () => setFavoriteCount((prev) => prev - 1);
+  const decreaseFavoriteCount = () => setFavoriteCount((prev) => Math.max(0, prev - 1));
 
   return (
     <FavoriteContext.Provider

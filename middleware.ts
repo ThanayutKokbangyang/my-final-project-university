@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export default withAuth({
   callbacks: {
-    authorized: ({ token }: any) => {
+    authorized: ({ token }) => {
       if (token && token.role === "ADMIN") {
         return true; // Grant access if the role is ADMIN
       }
@@ -14,7 +14,7 @@ export default withAuth({
   secret: process.env.NEXTAUTH_SECRET,
 
   pages: {
-    signIn: "/signup", // Redirect unauthorized users to the signup page
+    signIn: "/signin", // Redirect unauthorized users to the sign-in page
   },
 });
 
