@@ -1,9 +1,8 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Navbar from "./components/Navbar";
-import HeroImageSlider from "./components/HeroImageSlider";
-import { Advertisement, HeroImage } from "@prisma/client";
+import EclatHero from "./components/EclatHero";
+import { Advertisement } from "@prisma/client";
 import AdvertisementPreview from "./components/AdvertisementPreview";
 import ProductCard from "./components/ProductCard";
 import Link from "next/link";
@@ -11,34 +10,15 @@ import DiscountCode from "./components/DiscountCode"; // Import the DiscountCode
 import Footer from "./components/Footer";
 
 export default function Home() {
-  const router = useRouter();
-  const [heroImages, setHeroImages] = useState<HeroImage[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   const [ads, setAds] = useState<Advertisement[]>([]);
   const [products, setProducts] = useState<any[]>([]);
-
-  // Fetch hero images
-  const fetchHeroImages = async (): Promise<void> => {
-    try {
-      const response = await fetch("/api/hero-images");
-      if (!response.ok) {
-        throw new Error("Failed to fetch hero images.");
-      }
-      const data = await response.json();
-      setHeroImages(data);
-    } catch (error) {
-      console.error("Failed to fetch hero images:", error);
-      setError("Failed to load hero images.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Fetch products
   const fetchProducts = async (): Promise<void> => {
     try {
       const response = await fetch("/api/products");
+      if (!response.ok) throw new Error("Failed to fetch products");
       const data = await response.json();
 
       const productsWithImages = data.map((product: any) => ({
@@ -68,7 +48,6 @@ export default function Home() {
 
   // useEffect to trigger fetching of data
   useEffect(() => {
-    fetchHeroImages();
     fetchProducts();
     fetchAds();
   }, []);
@@ -77,15 +56,7 @@ export default function Home() {
     <div>
       <Navbar />
       <AdvertisementPreview ads={ads} />
-      {loading ? (
-        <p>Loading...</p>
-      ) : error ? (
-        <p>{error}</p>
-      ) : (
-        <div className="w-full overflow-hidden">
-          <HeroImageSlider heroImages={heroImages} />
-        </div>
-      )}
+      <EclatHero />
 
       <span className="text-3xl font-bold text-gray-800 mt-10 block text-center">สินค้าของเรา</span>
 
