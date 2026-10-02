@@ -4,15 +4,17 @@
 
 ใช้ Next.js 14 App Router, React 18, TypeScript, Tailwind CSS, NextAuth, Prisma และ MySQL
 
-![หน้าร้าน](https://github.com/user-attachments/assets/e1ce8171-cf2c-4e60-8713-177f98dc355e)
+![Eclat Hero studio concept](docs/images/eclat-studio-hero.webp)
 ![สินค้า](https://github.com/user-attachments/assets/481e5658-f668-43f5-8f90-5de7eea18330)
 ![ระบบจัดการ](https://github.com/user-attachments/assets/291ebe5f-183b-40fe-a1a0-404e668e97b6)
 
 ## Hero studio concept
 
-หน้าแรกใช้ภาพคอนเซปต์แฟนเมดใหม่ที่ `public/images/eclat-studio-hero.webp` และข้อความ/ปุ่มจริงใน `src/app/components/EclatHero.tsx` ภาพต้นฉบับไม่มีข้อความ Hero หรือปุ่มเว็บ บนมือถือแยกข้อความไว้ใต้ภาพเพื่อไม่บังใบหน้า
+ภาพ Hero ด้านบนเป็นภาพประกอบ README เท่านั้น ส่วนเว็บไซต์ยังโหลดภาพ Hero จาก API และใช้ slider เดิม
 
-ภาพเป็นงานสร้างสรรค์สังเคราะห์จากภาพอ้างอิงที่ผู้ใช้ให้ สำหรับโปรเจกต์ส่วนบุคคล ไม่ใช่การรับรองสินค้าจริงจากศิลปิน คอนเซปต์: สมาชิกเก้าคน เสื้อฮูดขาว โลโก้ Eclat ที่อก ถือขวด Eclat ในสตูดิโอสีเทา แสง softbox และพื้นผิวภาพถ่ายธรรมชาติ
+[ดาวน์โหลดภาพเปล่า ไม่มีข้อความหรือปุ่ม](docs/images/eclat-studio-clean.webp)
+
+ภาพเป็นคอนเซปต์แฟนเมดสำหรับโปรเจกต์ส่วนบุคคล ไม่ใช่การรับรองสินค้าจริงจากศิลปิน
 
 ## ติดตั้งและเริ่มใช้งาน
 
